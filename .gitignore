@@ -1,0 +1,13 @@
+# Local Python Virtual Environments
+.venv/
+__pycache__/
+*.pyc
+
+# Local Runtime Configurations & Database Variables
+config/config.json
+
+# Local Compliance Logs & Generated Audit Trails
+output/
+
+# Private Development Prototypes & Local Manifest Inventories
+manifests/

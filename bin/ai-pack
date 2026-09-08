@@ -1,0 +1,111 @@
+#!/usr/sbin/bash
+
+# ============================================================
+# AI-PACK v2
+# Context Packaging & AI Analysis Toolkit
+# ============================================================
+
+VERSION="2.0.0"
+PROJECT_ROOT="$HOME/StoneveldGithub/Whit"
+OUTPUT_DIR="$PROJECT_ROOT/AI_Context_Pack/ai-pack-v2/output"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# ------------------------------------------------------------
+# Display the program header
+# ------------------------------------------------------------
+
+show_header() {
+    clear
+    echo "========================================"
+    echo "             AI-PACK v$VERSION"
+    echo "========================================"
+    echo " Context Packaging & AI Analysis Toolkit"
+    echo "========================================"
+    echo
+}
+
+# ------------------------------------------------------------
+# Main menu
+# ------------------------------------------------------------
+
+show_menu() {
+    echo "What would you like to do?"
+    echo
+    echo "  1) Create project snapshot"
+    echo "  2) Analyse code"
+    echo "  3) Analyse documentation"
+    echo "  4) Analyse project history"
+    echo "  5) Build AI context package"
+    echo "  6) Send context to local AI"
+    echo "  7) Run complete AI analysis"
+    echo "  8) Custom selection"
+    echo "  9) Configuration"
+    echo "  0) Exit"
+    echo
+}
+
+# ------------------------------------------------------------
+# Main program
+# ------------------------------------------------------------
+
+show_header
+show_menu
+
+read -r -p "Select an option [0-9]: " CHOICE
+
+echo
+echo "You selected: $CHOICE"
+echo
+
+case "$CHOICE" in
+    1)
+        echo "Project snapshot selected."
+        ;;
+    2)
+        echo "Code analysis selected."
+        ;;
+    3)
+        echo "Documentation analysis selected."
+        ;;
+    4)
+        echo "Project history analysis selected."
+        ;;
+    5)
+        echo "AI context package selected."
+        ;;
+    6)
+        echo "Local AI selected."
+        echo
+
+        CONTEXT_FILE=$(find "$OUTPUT_DIR" -maxdepth 1 -type f -name "context_*.txt" -printf "%T@ %p\n" 2>/dev/null | sort -nr | head -n 1 | cut -d' ' -f2-)
+
+        if [[ -z "$CONTEXT_FILE" ]]; then
+            echo "ERROR: No context package found."
+            echo
+            exit 1
+        fi
+
+        echo "Using context:"
+        echo "$CONTEXT_FILE"
+        echo
+
+        "$SCRIPT_DIR/../lib/ollama.sh" "$CONTEXT_FILE"
+        ;;
+
+    7) echo "Complete AI analysis selected."
+        ;;
+    8)
+        echo "Custom selection selected."
+        ;;
+    9)
+        echo "Configuration selected."
+        ;;
+    0)
+        echo "Goodbye."
+        exit 0
+        ;;
+    *)
+        echo "Invalid selection."
+        exit 1
+        ;;
+esac
