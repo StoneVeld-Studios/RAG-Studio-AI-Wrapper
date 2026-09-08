@@ -2,7 +2,7 @@
 
 ## PRODUCT OVERVIEW & MISSION
 
-AI-Pack v2.0 is a local-first, privacy-focused context orchestrator designed to solve the problem of context congestion and token roll-off/overflow crashes that can occur when using large language models. It ensures that local data is used to perform AI tasks, protecting corporate intellectual property locally. AI-Pack v2.0 is designed to help developers and businesses efficiently manage and analyze their codebase, ensuring that sensitive information is kept secure and that the AI models used are aligned with corporate standards.
+AI-Pack v2.0 is a local-first, privacy-focused context orchestrator designed to solve the bottleneck around context congestion and token roll-off/overflow crashes that can occur when using large language models. It ensures local data is used to perform AI tasks, protecting corporate intellectual property locally. AI-Pack v2.0 helps developers and businesses manage and analyze their codebase, ensuring that sensitive information is secured before it reaches the local AI model on your laptop or desktop.
 
 ## ⚙️ SYSTEM REQUIREMENTS & INSTALLATION (Arch Linux)
 
@@ -43,13 +43,33 @@ AI-Pack v2.0 is a local-first, privacy-focused context orchestrator designed to 
 
 ## 🎛️ CORE FEATURE OPERATIONS
 
+### 🛡️ Automated Data Compliance & Token Telemetry Tracking
+
+RAG Studio / AI Wrapper enforces absolute transparency by introducing a real-time **Data Compliance Status Column** across all system telemetry feeds and exported corporate audit logs. 
+
+Instead of operating as a traditional "black-box" script, the framework evaluates incoming directory streams sequentially inside system memory, providing a convenient, truthful overview of your repository's data hygiene without risking corporate trade secrets.
+
+| Parameter Tracker | Metric Profile | Functional Logic |
+| :--- | :--- | :--- |
+| 🟢 **CLEAN / VERIFIED LOCAL** | Secure Payload | Text stream passed verbatim through RAM; zero compliance leaks detected. |
+| 🔴 **[REDACTED: COMPLIANCE_MAPPING]** | Masked Threat | In-memory regex scrubbing intercepted and neutralized a hardcoded credential vector (API Keys, Passwords, or Private SSH Keys) prior to model packaging. |
+
+#### Why This Architecture Matters:
+
+* **Zero Refactoring Overhead:** Saves developers hours of manual cleanup by automatically neutralizing credential vectors, ensuring a codebase snapshot is instantly ready for local analysis.
+  
+* **Syntactic Integrity:** The substitution engine masks the raw credential string values but retains the variable names and code structures. This allows local models to debug structural variables without ever exposing active production tokens.
+  
+* **Audit-Ready Documentation:** When the **Corporate Audit Log Exporter** is engaged, the compliance column states are printed directly into a beautifully formatted Markdown report (`.md`) inside the local `output/` directory, serving as physical compliance evidence for security teams.
+
+
 ### Using the Dashboard Panel
 
 **1. Selecting a Project Repository Folder**
    - Navigate to the dashboard panel in AI-Pack v2.0.
    - Use the file browser to select a project repository folder. AI-Pack v2.0 will automatically parse the repository and display the context track weight metrics gauge.
 
-**2. Reading the Dynamic "Context Track weight" Metrics Gauge**
+**2. Reading the Dynamic "Context Track Weight" Metrics Gauge**
    - The context track weight gauge provides real-time metrics on the size of the context being processed by AI-Pack v2.0. The gauge will display Green, Yellow, or Red indicators depending on the size of the context:
      - **Green:** The context size is within the acceptable range.
      - **Yellow:** The context size is approaching the acceptable range.
