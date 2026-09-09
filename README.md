@@ -1,79 +1,291 @@
-# AI-PACK v2.0 — User Manual
+# RAG Studio AI Wrapper
 
-## PRODUCT OVERVIEW & MISSION
+**Version 2.1.0**
 
-AI-Pack v2.0 is a local-first, privacy-focused context orchestrator designed to solve the problem of context congestion and token roll-off/overflow crashes that can occur when using large language models. It ensures that local data is used to perform AI tasks, protecting corporate intellectual property locally. AI-Pack v2.0 is designed to help developers and businesses efficiently manage and analyze their codebase, ensuring that sensitive information is kept secure and that the AI models used are aligned with corporate standards.
+RAG Studio AI Wrapper is a local-first desktop application for preparing, inspecting, protecting, and delivering project context
+to a local AI model. It is designed around a simple principle:
 
-## ⚙️ SYSTEM REQUIREMENTS & INSTALLATION (Arch Linux)
+> **Audit the operation, not the customer's content.**
 
-### Local Runtime Infrastructure
+RAG Studio helps developers work with large project codebases by providing context collection, token accounting, security redaction,
+deterministic safety evaluation, and local model integration.
 
-**Software Requirements:**
-- **Python venv:** This is a virtual environment that allows you to isolate Python applications and their dependencies.
-- **Pacman Dependencies:** `qt6-base` and `noto-fonts`. These packages provide the necessary graphical user interface components and fonts for AI-Pack v2.0.
-- **Local Ollama Runner:** This is a service that runs the Qwen2.5-coder:3b model locally. Ensure that the Qwen2.5-coder:3b model is installed and running on your CPU.
+---
 
-**Installation Steps:**
+## Why RAG Studio?
 
-1. **Create a Python Virtual Environment:**
-   ```bash
-   python3 -m venv ai-pack-env
-   source ai-pack-env/bin/activate
-   ```
+Working with AI against a real codebase creates several practical problems:
 
-2. **Install Ollama:**
-   Follow the Ollama installation instructions for your architecture: [Ollama Installation Guide](https://ollama.io/docs/install/).
+* Large project context can exceed model limits.
+* Project files may contain credentials or sensitive values.
+* File-reading failures can result in incomplete context.
+* AI pipelines need clear operational boundaries.
+* Audit information should not unnecessarily reproduce customer source material.
 
-3. **Install Required Packages:**
-   ```bash
-   sudo pacman -S qt6-base noto-fonts
-   ```
+RAG Studio is designed to make these conditions visible and controllable.
 
-4. **Run the Ollama Runner:**
-   Ensure that the Qwen2.5-coder:3b model is running locally. You can start the runner by running the following command:
-   ```bash
-   ollama run qwen2.5-coder:3b
-   ```
+---
 
-5. **Verify Installation:**
-   You can verify that the Ollama runner is running by accessing the Ollama API endpoint:
-   ```bash
-   curl http://localhost:11434/api
-   ```
+## v2.1.0 Highlights
 
-## 🎛️ CORE FEATURE OPERATIONS
+Version 2.1 introduces a deterministic Micro-Kernel and strengthened security handling.
 
-### Using the Dashboard Panel
+### Deterministic Micro-Kernel
 
-**1. Selecting a Project Repository Folder**
-   - Navigate to the dashboard panel in AI-Pack v2.0.
-   - Use the file browser to select a project repository folder. AI-Pack v2.0 will automatically parse the repository and display the context track weight metrics gauge.
+The Micro-Kernel follows four stages:
 
-**2. Reading the Dynamic "Context Track weight" Metrics Gauge**
-   - The context track weight gauge provides real-time metrics on the size of the context being processed by AI-Pack v2.0. The gauge will display Green, Yellow, or Red indicators depending on the size of the context:
-     - **Green:** The context size is within the acceptable range.
-     - **Yellow:** The context size is approaching the acceptable range.
-     - **Red:** The context size is too large and may cause token roll-off/overflow crashes.
+**OBSERVE -> COMPARE -> EVALUATE -> RESPOND**
 
-**3. The Compliance Redaction switch**
-   - The Compliance Redaction switch allows you to mask API keys and passwords in memory. This ensures that sensitive information is not exposed in the logs or output files.
+The kernel:
 
-**4. The Corporate Audit Log exporter**
-   - The Corporate Audit Log exporter allows you to write logs directly to the output folder. This is useful for auditing and monitoring the AI-Pack v2.0 operations.
+* does not use an LLM
+* does not access the filesystem
+* does not access the network
+* does not depend on the GUI
+* maintains no hidden runtime state
+* produces deterministic results
 
-## 🛡️ DATA SECURITY & COMPLIANCE STANDARD
+Given the same observation, the kernel produces the same decision.
 
-**1. Local Loopback Network Guarantee**
-   - AI-Pack v2.0 ensures that all data is processed and stored locally, preventing data from leaving your local network.
+### Kernel States
 
-**2. Regex Scrubbing Engine**
-   - The Regex Scrubbing Engine is used to securely scrub proprietary company keys and other sensitive information from memory. This ensures that sensitive information is not exposed in the logs or output files.
+| State     | Meaning                                          | Result               |
+| --------- | ------------------------------------------------ | -------------------- |
+| `SAFE`    | Valid observation within limits                  | Allowed              |
+| `WARNING` | Valid observation approaching a configured limit | Allowed with warning |
+| `BLOCKED` | Unsafe operating condition detected              | Prevented            |
+| `INVALID` | Observation data is malformed or inconsistent    | Prevented            |
 
-## 🛠️ TROUBLESHOOTING & PIPELINE TIMEOUTS
+The kernel evaluates operational facts including:
 
-**1. Pipeline Interface Timeout Error**
-   - If a "Pipeline Interface Timeout Error" occurs, it may be due to CPU inference crunch times on large payloads. To address this, you can adjust the network deadline configurations or increase the CPU resources allocated to AI-Pack v2.0.
+* discovered files
+* included files
+* excluded files
+* file-read failures
+* redaction count
+* token count
+* token limit
 
-## Conclusion
+The kernel is deliberately small and independent of AI inference.
 
-AI-Pack v2.0 is a powerful tool designed to help developers and businesses efficiently manage and analyze their codebase. With its local-first architecture and focus on data security and compliance, AI-Pack v2.0 ensures that sensitive information is kept secure and that the AI models used are aligned with corporate standards. By following the instructions in this User Manual, you can easily deploy and understand AI-Pack v2.0 and start leveraging its powerful features to improve your development process.
+---
+
+## Security Redaction
+
+RAG Studio includes a text-based `SecurityRedactor`. It detects and replaces common sensitive values including:
+
+* passwords
+* secrets
+* API keys
+* authentication tokens
+* bearer tokens
+* database passwords
+* AWS secret assignments
+* SSH private keys
+* user-specified private targets
+
+The redactor returns:
+
+1. sanitized text
+2. the number of redactions performed
+
+This allows the application to track redaction activity without requiring protected values to appear in audit information.
+
+### Security Note
+
+Redaction is a defensive mechanism, not a guarantee that every possible secret format will be detected. Users should still
+review their environment and project configuration before processing sensitive material.
+
+---
+
+## Local AI Integration
+
+RAG Studio can communicate with a locally running Ollama service. The development workflow supports local coding models,
+for example: `qwen2.5-coder:3b`. The AI model is separate from the deterministic Micro-Kernel. The kernel evaluates operational conditions independently of the model.
+
+---
+
+## Architecture
+
+At a high level:
+
+**Project Files**
+**File Scanner**
+**Security Redactor**
+**Token Counter**
+**Deterministic Micro-Kernel**
+**Decision**
+**Local AI Pipeline**
+
+The kernel does not need to understand the customer's source code. It evaluates the operation using structured observations
+supplied by the application.
+
+---
+
+## Context Handling
+
+RAG Studio can scan a selected project directory and assemble context for the AI pipeline. The scanner supports different
+file-selection modes and excludes common development directories such as:
+
+* `.git`
+* `.venv`
+* `__pycache__`
+* generated output directories
+
+Context size is measured before dispatch so token pressure can be identified.
+
+---
+
+## Installation
+
+### Requirements
+
+* Python 3
+* Python virtual environment support
+* PyQt6
+* Ollama
+* A compatible local AI model
+
+Python dependencies are listed in `requirements.txt`.
+
+
+### Create a virtual environment
+
+From the project directory:
+
+`python3 -m venv .venv`
+
+Activate it:
+
+`source .venv/bin/activate`
+
+Install dependencies:
+
+`pip install -r requirements.txt`
+
+
+### Install Ollama
+
+Install Ollama for your operating system using its official documentation. Then install a compatible model, for example:
+`ollama pull qwen2.5-coder:3b`. Make sure Ollama is running before using AI dispatch functionality.
+
+---
+
+## Running RAG Studio
+
+From the repository directory: `python3 main_ui.py`. The application launches as a PyQt6 desktop application.
+
+---
+
+## Testing
+
+RAG Studio includes automated tests for the deterministic kernel and security redaction components.
+
+Run:
+
+`pytest`
+
+The tests verify deterministic behaviour, validation rules, blocking conditions, and redaction behaviour.
+
+---
+
+## Privacy Boundaries
+
+RAG Studio is designed for local-first operation. The project intentionally separates operational auditing from
+customer content. Generated runtime material such as:
+
+* local configuration
+* manifests
+* generated output
+* context snapshots
+
+...is excluded from version control. The repository should contain source code and synthetic test material rather than
+private customer or project data.
+
+### Important
+
+Local-first does not automatically mean that every deployment is private. Network configuration, Ollama configuration,
+model configuration, operating-system behaviour, and other installed software can affect where data travels.Users remain
+responsible for verifying the environment in which they run RAG Studio.
+
+---
+
+## Repository Structure
+
+RAG-Studio-AI-Wrapper/
+lib/
+kernel.py
+redactor.py
+token_counter.py
+...
+tests/
+test_kernel.py
+test_redactor.py
+config/
+main_ui.py
+requirements.txt
+LICENSE
+README.md
+
+```
+Local runtime directories and configuration files are excluded from version control.
+
+---
+
+## Design Principles
+
+### Deterministic decisions
+
+Operational decisions should be reproducible.
+
+### Explicit state
+
+The system should expose why an operation was allowed, warned, blocked, or rejected.
+
+### Minimal kernel
+
+The deterministic kernel should remain small and understandable.
+
+### Separation of concerns
+
+Scanning, redaction, token accounting, UI behaviour, AI inference, and deterministic evaluation should remain distinct responsibilities.
+
+### Local-first operation
+
+The default architecture is designed around local project processing and local AI inference.
+
+### Human control
+
+RAG Studio assists with context preparation and operational evaluation. It does not autonomously modify or destroy customer project data.
+
+### Audit the operation, not the customer's content
+
+Operational evidence should describe what happened without unnecessarily reproducing the material being processed.
+
+---
+
+## Project Status
+
+**v2.1.0 development branch**
+
+RAG Studio AI Wrapper is currently undergoing hardening and validation of its v2.1 architecture.
+
+The v2.1 focus is:
+
+* stability
+* deterministic evaluation
+* security handling
+* testing
+* clean separation of responsibilities
+
+Future development may expand the context pipeline, user interface, and deployment model.
+
+---
+
+## License
+
+RAG Studio AI Wrapper is released under the **MIT License**.
+
+Copyright © 2026 StoneVeld Studios.
+
+See `LICENSE` for the complete license text.
