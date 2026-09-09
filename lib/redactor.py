@@ -1,10 +1,12 @@
 import re
 
+
 class SecurityRedactor:
     """
-    Enforces security compliance parameters by intercepting data payloads 
+    Enforces security compliance parameters by intercepting data payloads
     and scrubbing hardcoded credentials or private data in system memory.
     """
+
     def __init__(self):
         # High-performance compiled regular expressions for standard leak profiles
         self.patterns = {
@@ -13,8 +15,7 @@ class SecurityRedactor:
             "SSH_Private_Key": re.compile(r'-----BEGIN [A-Z]+ PRIVATE KEY-----[\s\S]+?-----END [A-Z]+ PRIVATE KEY-----'),
             "Environment_Assignment": re.compile(r'(?i)(db[_-]pass|db[_-]password|aws[_-]secret)\s*=\s*["\']([^"\']+)["\']')
         }
-
-    def scrub_text(self, raw_payload: str) -> tuple:
+    def scrub_text(self, raw_payload, custom_target=""):
         """
         Scrubs matching patterns from text strings entirely in RAM.
         Returns a tuple: (scrubbed_text: str, total_redactions_found: int)
