@@ -113,19 +113,20 @@ def test_zero_token_limit_is_invalid():
     assert result.state == KernelState.INVALID
     assert result.allowed is False
 
-
-def test_read_failures_block_transmission():
+def test_read_failures_count_toward_discovered_files():
     kernel = Kernel()
 
     result = kernel.evaluate(
         make_observation(
+            files_discovered=10,
+            files_included=6,
+            files_excluded=3,
             read_failures=1,
         )
     )
 
     assert result.state == KernelState.BLOCKED
     assert result.allowed is False
-
 
 def test_file_counts_must_balance():
     kernel = Kernel()

@@ -122,6 +122,7 @@ class Kernel:
         if (
             observation.files_included
             + observation.files_excluded
+            + observation.read_failures
             != observation.files_discovered
         ):
             return ["File counts are inconsistent."]

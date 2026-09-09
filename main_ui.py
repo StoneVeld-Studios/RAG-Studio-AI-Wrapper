@@ -34,6 +34,10 @@ class FileScannerWorker(QThread):
 
     def run(self):
         assembled_text = ""
+        files_discovered = 0
+        files_included = 0
+        files_excluded = 0
+        read_failures = 0
 
         # Comprehensive extensions arrays targeting all layout focus possibilities
         if self.filter_id == 2:    # Pure Source Code Engine
@@ -49,11 +53,17 @@ class FileScannerWorker(QThread):
         for root, _, files in os.walk(self.folder):
             if '.venv' in root or '.git' in root or 'output' in root or '__pycache__' in root:
                 continue
+
             for file in files:
+                files_discovered += 1
                 file_lower = file.lower()
+
                 # Match target extensions or accept files without any extension tag if docs are selected
-                if any(file_lower.endswith(ext) for ext in target_exts if ext) or ('' in target_exts and '.' not in file):
+                if any(file_lower.endswith(ext) for ext in target_exts if ext) or (
+                    '' in target_exts and '.' not in file
+                ):
                     file_path = os.path.join(root, file)
+
                     try:
                         # Dual-layer robust encoding fallback reader mechanism
                         try:
@@ -65,13 +75,20 @@ class FileScannerWorker(QThread):
 
                         if self.redact_checked or (self.custom_key and len(self.custom_key) > 2):
                             content, _ = self.redactor.scrub_text(
-                                content, self.custom_key)
+                                content, self.custom_key
+                            )
 
                         rel_path = os.path.relpath(file_path, self.folder)
                         assembled_text += f"\n\n--- FILE: {rel_path} ---\n" + content
+                        files_included += 1
+
                     except Exception as e:
+                        read_failures += 1
                         print(
-                            f"[Debug Link Error Pass] Skipping file read layout for: {file}. Details: {e}")
+                            f"[Debug Link Error Pass] Skipping file read layout for: {file}. Details: {e}"
+                        )
+                else:
+                    files_excluded += 1
 
         total_tokens = self.token_engine.calculate_tokens(assembled_text)
         self.scan_complete.emit(assembled_text, total_tokens)
