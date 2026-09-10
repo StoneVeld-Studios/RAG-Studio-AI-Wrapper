@@ -27,7 +27,9 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: python -m pip install -r requirements.txt
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install -r requirements-dev.txt
 
       - name: Compile application
         run: python -m py_compile main_ui.py lib/kernel.py
