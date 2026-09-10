@@ -11,3 +11,7 @@ output/
 
 # Private Development Prototypes & Local Manifest Inventories
 manifests/
+
+*_context.txt
+*_snapshot.txt
+context_*.txt
