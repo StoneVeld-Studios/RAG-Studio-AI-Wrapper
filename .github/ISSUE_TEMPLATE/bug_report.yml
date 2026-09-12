@@ -1,0 +1,60 @@
+name: Bug report
+description: Report a reproducible problem in RAG Studio
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include customer source code, credentials, API keys, passwords,
+        private keys, or unsanitized context output.
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: Which release or commit did you test?
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Operating system and Python version
+    validations:
+      required: true
+  - type: dropdown
+    id: ollama
+    attributes:
+      label: Was Ollama enabled?
+      options:
+        - "No"
+        - "Yes"
+        - "Not applicable"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Include the smallest synthetic example that demonstrates the issue.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs or screenshots
+      description: Remove private content and secrets before posting.
+    validations:
+      required: false
