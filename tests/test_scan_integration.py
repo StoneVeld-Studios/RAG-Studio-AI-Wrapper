@@ -4,7 +4,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from main_ui import FileScannerWorker
-from lib.kernel import Kernel, KernelState
+from lib.kernel import Kernel, KernelState, Observation
 
 
 def test_real_scan_produces_kernel_observation(tmp_path):
@@ -42,7 +42,7 @@ def test_real_scan_produces_kernel_observation(tmp_path):
     assert "SECRET" not in scan_result.assembled_text
 
     result = Kernel().evaluate(
-        observation=__import__("lib.kernel", fromlist=["Observation"]).Observation(
+        observation=Observation(
             files_discovered=scan_result.files_discovered,
             files_included=scan_result.files_included,
             files_excluded=scan_result.files_excluded,
