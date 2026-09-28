@@ -1,5 +1,6 @@
 import os
 import sys
+from dataclasses import dataclass
 import urllib.request
 import json
 from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
@@ -14,6 +15,18 @@ from config.settings_manager import SettingsManager
 from lib.runner_sync import OllamaSync
 from lib.token_counter import QwenTokenCounter
 from lib.redactor import SecurityRedactor
+from lib.kernel import Kernel, Observation
+
+
+@dataclass(frozen=True)
+class ScanResult:
+    assembled_text: str
+    files_discovered: int
+    files_included: int
+    files_excluded: int
+    read_failures: int
+    redaction_count: int
+    token_count: int
 
 
 class FileScannerWorker(QThread):
@@ -21,7 +34,7 @@ class FileScannerWorker(QThread):
     Background worker thread that handles heavy repository file aggregation
     and token computation in memory to keep the main GUI from freezing.
     """
-    scan_complete = pyqtSignal(str, int)
+    scan_complete = pyqtSignal(object)
 
     def __init__(self, folder, filter_id, redact_checked, custom_key):
         super().__init__()
@@ -38,6 +51,7 @@ class FileScannerWorker(QThread):
         files_included = 0
         files_excluded = 0
         read_failures = 0
+        redaction_count = 0
 
         # Comprehensive extensions arrays targeting all layout focus possibilities
         if self.filter_id == 2:    # Pure Source Code Engine
@@ -74,9 +88,10 @@ class FileScannerWorker(QThread):
                                 content = f.read()
 
                         if self.redact_checked or (self.custom_key and len(self.custom_key) > 2):
-                            content, _ = self.redactor.scrub_text(
+                            content, file_redactions = self.redactor.scrub_text(
                                 content, self.custom_key
                             )
+                            redaction_count += file_redactions
 
                         rel_path = os.path.relpath(file_path, self.folder)
                         assembled_text += f"\n\n--- FILE: {rel_path} ---\n" + content
@@ -91,7 +106,17 @@ class FileScannerWorker(QThread):
                     files_excluded += 1
 
         total_tokens = self.token_engine.calculate_tokens(assembled_text)
-        self.scan_complete.emit(assembled_text, total_tokens)
+        self.scan_complete.emit(
+            ScanResult(
+                assembled_text=assembled_text,
+                files_discovered=files_discovered,
+                files_included=files_included,
+                files_excluded=files_excluded,
+                read_failures=read_failures,
+                redaction_count=redaction_count,
+                token_count=total_tokens,
+            )
+        )
 
 
 class AIWorker(QThread):
@@ -134,6 +159,8 @@ class RAGStudioApp(QWidget):
         self.active_model = self.settings.get("target_model")
         self.max_tokens = self.sync_engine.get_active_context_limit(
             self.active_model)
+        self.kernel = Kernel()
+        self.kernel_result = None
 
         self.initUI()
         self.apply_dark_mode_theme()
@@ -285,11 +312,22 @@ class RAGStudioApp(QWidget):
         self.scanner.scan_complete.connect(self.handle_scan_complete)
         self.scanner.start()
 
-    def handle_scan_complete(self, assembled_text, total_tokens):
+    def handle_scan_complete(self, scan_result):
         """Triggered smoothly when background thread completes traversal calculations."""
-        self.compiled_context = assembled_text
+        self.compiled_context = scan_result.assembled_text
+        observation = Observation(
+            files_discovered=scan_result.files_discovered,
+            files_included=scan_result.files_included,
+            files_excluded=scan_result.files_excluded,
+            read_failures=scan_result.read_failures,
+            redaction_count=scan_result.redaction_count,
+            token_count=scan_result.token_count,
+            token_limit=self.max_tokens,
+        )
+        self.kernel_result = self.kernel.evaluate(observation)
 
         # Calculate true contextual progress metrics tracking loop
+        total_tokens = scan_result.token_count
         pct = int((total_tokens / self.max_tokens) *
                   100) if self.max_tokens > 0 else 0
         self.lbl_token_count.setText(
