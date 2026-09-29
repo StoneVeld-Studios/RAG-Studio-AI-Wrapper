@@ -124,15 +124,18 @@ supplied by the application.
 
 ## Context Handling
 
-RAG Studio can scan a selected project directory and assemble context for the AI pipeline. The scanner supports different
-file-selection modes and excludes common development directories such as:
+RAG Studio currently uses whole-directory context assembly rather than conventional retrieval or chunk-based RAG. The scanner
+collects the selected files into a single assembled context, which is then measured before dispatch.
+
+The scanner supports different file-selection modes and excludes common development directories such as:
 
 * `.git`
 * `.venv`
 * `__pycache__`
 * generated output directories
 
-Context size is measured before dispatch so token pressure can be identified.
+Context size is measured before dispatch so token pressure can be identified. The application does not silently truncate the
+assembled context; if the final payload exceeds the active context limit, dispatch is blocked.
 
 ---
 
@@ -147,6 +150,9 @@ Context size is measured before dispatch so token pressure can be identified.
 * A compatible local AI model
 
 Python dependencies are listed in `requirements.txt`.
+
+On Linux, PyQt6 may also require system GUI runtime libraries that are not installed by pip. On Ubuntu/Debian systems, install
+the EGL runtime package `libegl1` if it is missing. Other Linux distributions may provide the equivalent package under a different name.
 
 
 ### Create a virtual environment
@@ -179,13 +185,19 @@ From the repository directory: `python3 main_ui.py`. The application launches as
 
 ## Testing
 
-RAG Studio includes automated tests for the deterministic kernel and security redaction components.
+RAG Studio includes automated tests covering the deterministic kernel, security redaction, live scanner-to-kernel integration,
+and context-assembly continuity.
 
 Run:
 
-`pytest`
+`python -m pytest -q`
 
-The tests verify deterministic behaviour, validation rules, blocking conditions, and redaction behaviour.
+The current automated suite contains 26 tests. The tests use controlled synthetic data and verify deterministic behaviour,
+validation and blocking conditions, redaction behaviour, scanner observations, and preservation of included/excluded content.
+
+For the external testing workflow, see `TESTING.md`. The current external QA work is tracked through GitHub Issue #5.
+General testing discussion can use GitHub Discussions; reproducible defects should be reported as GitHub Issues, with Issue #5
+referenced where relevant. Experiment results are recorded under `research/experiments/`.
 
 ---
 
@@ -213,22 +225,16 @@ responsible for verifying the environment in which they run RAG Studio.
 ## Repository Structure
 
 RAG-Studio-AI-Wrapper/
-lib/
-kernel.py
-redactor.py
-token_counter.py
-...
-tests/
-test_kernel.py
-test_redactor.py
-config/
-main_ui.py
-requirements.txt
-LICENSE
-README.md
+* `.github/workflows/` — automated GitHub Actions tests
+* `config/` — application settings
+* `lib/` — kernel, redaction, token, and supporting components
+* `research/experiments/` — durable experiment records
+* `tests/` — automated tests and controlled synthetic fixtures
+* `TESTING.md` — external testing and reporting workflow
+* `main_ui.py` — desktop application
+* `requirements.txt` — Python runtime dependencies
+* `requirements-dev.txt` — development/test dependencies
+* `LICENSE`
+* `README.md`
 
-```
 Local runtime directories and configuration files are excluded from version control.
-
----
-
