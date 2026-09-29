@@ -42,7 +42,7 @@ def test_context_assembly_preserves_included_content_and_excludes_unmatched_file
 
     worker = FileScannerWorker(
         str(tmp_path),
-        filter_mode=0,
+        filter_id=0,
         redact_checked=False,
         custom_key="",
     )
