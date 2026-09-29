@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feature/rag-studio-v2.1
+      - experiment/kernel-live-observation-001
   pull_request:
     branches:
       - main
