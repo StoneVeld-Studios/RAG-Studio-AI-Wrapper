@@ -2,17 +2,17 @@
 
 **2.1.1 architecture work**
 
-RAG Studio AI Wrapper is a local-first desktop application for preparing, inspecting, protecting, and delivering project context
+RAG Trigger Studio is a local-first desktop application for preparing, inspecting, protecting, and delivering project context
 to a local AI model. It is designed around a simple principle:
 
 > **Audit the operation, not the customer's content.**
 
-RAG Studio helps developers work with large project codebases by providing context collection, token accounting, security redaction,
+RAG Trigger Studio helps developers work with large project codebases by providing context collection, token accounting, security redaction,
 deterministic safety evaluation, and local model integration.
 
 ---
 
-## Why RAG Studio?
+## Why RAG Trigger Studio?
 
 Working with AI against a real codebase creates several practical problems:
 
@@ -22,7 +22,7 @@ Working with AI against a real codebase creates several practical problems:
 * AI pipelines need clear operational boundaries.
 * Audit information should not unnecessarily reproduce customer source material.
 
-RAG Studio is designed to make these conditions visible and controllable.
+RAG Trigger Studio is designed to make these conditions visible and controllable.
 
 ---
 
@@ -72,7 +72,7 @@ The kernel is deliberately small and independent of AI inference.
 
 ## Security Redaction
 
-RAG Studio includes a text-based `SecurityRedactor`. It detects and replaces common sensitive values including:
+RAG Trigger Studio includes a text-based `SecurityRedactor`. It detects and replaces common sensitive values including:
 
 * passwords
 * secrets
@@ -123,7 +123,7 @@ supplied by the application.
 
 ## Context Handling
 
-RAG Studio can scan a selected project directory and assemble context for the AI pipeline. The scanner supports different
+RAG Trigger Studio can scan a selected project directory and assemble context for the AI pipeline. The scanner supports different
 file-selection modes and excludes common development directories such as:
 
 * `.git`
@@ -170,7 +170,7 @@ Install Ollama for your operating system using its official documentation. Then 
 
 ---
 
-## Running RAG Studio
+## Running RAG Trigger Studio
 
 From the repository directory: `python3 main_ui.py`. The application launches as a PyQt6 desktop application.
 
@@ -200,7 +200,7 @@ See [CORE_TESTING.md](CORE_TESTING.md) for the complete testing boundary and pro
 
 ## Privacy Boundaries
 
-RAG Studio is designed for local-first operation. The project intentionally separates operational auditing from
+RAG Trigger Studio is designed for local-first operation. The project intentionally separates operational auditing from
 customer content. Generated runtime material such as:
 
 * local configuration
@@ -215,13 +215,13 @@ private customer or project data.
 
 Local-first does not automatically mean that every deployment is private. Network configuration, Ollama configuration,
 model configuration, operating-system behaviour, and other installed software can affect where data travels.Users remain
-responsible for verifying the environment in which they run RAG Studio.
+responsible for verifying the environment in which they run RAG Trigger Studio.
 
 ---
 
 ## Repository Structure
 
-RAG-Studio-AI-Wrapper/
+RAG_Trigger_Studio/
 lib/
 kernel.py
 redactor.py
