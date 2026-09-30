@@ -124,7 +124,7 @@ supplied by the application.
 
 ## Context Handling
 
-RAG Studio can scan a selected project directory and assemble context for the AI pipeline. The scanner supports different
+RAG Trigger Studio can scan a selected project directory and assemble context for the AI pipeline. The scanner supports different
 file-selection modes and excludes common development directories such as:
 
 * `.git`
@@ -171,7 +171,7 @@ Install Ollama for your operating system using its official documentation. Then 
 
 ---
 
-## Running RAG Studio
+## Running RAG Trigger Studio
 
 From the repository directory: `python3 main_ui.py`. The application launches as a PyQt6 desktop application.
 
@@ -179,7 +179,7 @@ From the repository directory: `python3 main_ui.py`. The application launches as
 
 ## Testing
 
-RAG Studio includes automated tests for the deterministic kernel and security redaction components.
+RAG Trigger Studio includes automated tests for the deterministic kernel and security redaction components.
 
 Run:
 
@@ -206,7 +206,7 @@ private customer or project data.
 
 Local-first does not automatically mean that every deployment is private. Network configuration, Ollama configuration,
 model configuration, operating-system behaviour, and other installed software can affect where data travels.Users remain
-responsible for verifying the environment in which they run RAG Studio.
+responsible for verifying the environment in which they run RAG Trigger Studio.
 
 ---
 
