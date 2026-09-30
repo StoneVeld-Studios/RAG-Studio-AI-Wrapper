@@ -1,4 +1,4 @@
-name: RAG Studio Tests
+name: RAG Trigger Studio Tests
 
 on:
   push:
