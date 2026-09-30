@@ -378,6 +378,88 @@ class RAGStudioApp(QWidget):
         self.btn_select_dir.setEnabled(True)
         self.btn_dispatch.setEnabled(True)
 
+
+    def build_project_tree(self):
+        self.tree.blockSignals(True)
+        self.tree.clear()
+        root = QTreeWidgetItem([os.path.basename(self.active_folder) or self.active_folder, "Project"])
+        root.setFlags(root.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+        root.setCheckState(0, Qt.CheckState.Checked)
+        self.tree.addTopLevelItem(root)
+        nodes = {"": root}
+        for rel_path in sorted(self.context_files):
+            parent = root
+            key = ""
+            for part in rel_path.split(os.sep):
+                key = os.path.join(key, part) if key else part
+                if key not in nodes:
+                    item = QTreeWidgetItem([part, "Included"])
+                    item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+                    item.setCheckState(0, Qt.CheckState.Checked)
+                    parent.addChild(item)
+                    nodes[key] = item
+                parent = nodes[key]
+        root.setExpanded(True)
+        self.tree.blockSignals(False)
+
+    def handle_tree_change(self, item, column):
+        if column != 0:
+            return
+        self.selected_files.clear()
+        def collect(node, prefix=""):
+            name = node.text(0)
+            path = os.path.join(prefix, name) if prefix else name
+            if node.childCount() == 0 and path in self.context_files:
+                included = node.checkState(0) == Qt.CheckState.Checked
+                node.setText(1, "Included" if included else "Excluded")
+                if included:
+                    self.selected_files.add(path)
+            for i in range(node.childCount()):
+                collect(node.child(i), path)
+        for i in range(self.tree.topLevelItemCount()):
+            collect(self.tree.topLevelItem(i))
+        self.rebuild_context()
+
+    def rebuild_context(self):
+        self.compiled_context = "".join(
+            f"\n\n--- FILE: {path} ---\n{self.context_files[path]}"
+            for path in sorted(self.selected_files)
+        )
+        self.update_token_display()
+        self.update_diagnostics()
+
+    def update_token_display(self):
+        context_tokens = self.token_engine.calculate_tokens(self.compiled_context)
+        instruction_tokens = self.token_engine.calculate_tokens(self.txt_prompt.toPlainText().strip())
+        total_tokens = context_tokens + instruction_tokens
+        self.lbl_token_count.setText(f"Context: {context_tokens} / {self.max_tokens} tokens")
+        self.lbl_instruction_tokens.setText(f"Instruction: +{instruction_tokens} tokens")
+        self.lbl_total_tokens.setText(f"Total before send: {total_tokens} / {self.max_tokens}")
+        self.progress_tokens.setValue(min(context_tokens, self.max_tokens))
+
+    def update_instruction_budget(self):
+        self.update_token_display()
+
+    def toggle_diagnostics(self, visible):
+        self.diagnostics.setVisible(visible)
+        if visible:
+            self.update_diagnostics()
+
+    def update_diagnostics(self):
+        if not hasattr(self, "diagnostics") or not self.diagnostics.isVisible():
+            return
+        context_tokens = self.token_engine.calculate_tokens(self.compiled_context)
+        instruction_tokens = self.token_engine.calculate_tokens(self.txt_prompt.toPlainText().strip())
+        self.diagnostics.setPlainText(
+            f"Provider: {self.core.provider_name}\n"
+            f"Model: {self.core.model}\n"
+            f"Context limit: {self.max_tokens}\n"
+            f"Files selected: {len(self.selected_files)} / {len(self.context_files)}\n"
+            f"Context tokens: {context_tokens}\n"
+            f"Instruction tokens: {instruction_tokens}\n"
+            f"Kernel state: {'available' if self.kernel_result else 'waiting for scan'}"
+        )
+
     def execute_pipeline(self):
         user_prompt = self.txt_prompt.toPlainText().strip()
         if not user_prompt:
@@ -385,8 +467,7 @@ class RAGStudioApp(QWidget):
                                 "Please input processing instructions.")
             return
 
-        final_payload = f"Context Material For Analysis:\n{self.compiled_context}\n\nUser Instruction:\n{user_prompt}"
-        total_tokens = self.token_engine.calculate_tokens(final_payload)
+        total_tokens = self.token_engine.calculate_tokens(self.compiled_context) + self.token_engine.calculate_tokens(user_prompt)
 
         if total_tokens > self.max_tokens:
             QMessageBox.critical(self, "Pipeline Blocked",
@@ -394,7 +475,7 @@ class RAGStudioApp(QWidget):
             return
 
         self.txt_console.setText(
-            "Transmitting context package pipeline through local loopback network array...")
+            "Running with Local AI Core...")
         self.btn_dispatch.setEnabled(False)
         self.btn_save_response.setEnabled(False)
 
@@ -426,7 +507,10 @@ class RAGStudioApp(QWidget):
             pass
 
     def handle_ai_response(self, response: CoreResponse):
+        self.last_response = response
         self.txt_console.setText(response.text)
+        self.lbl_core.setText(f"Core: Connected — {response.provider} / {response.model}")
+        self.update_diagnostics()
         self.btn_dispatch.setEnabled(True)
         self.btn_save_response.setEnabled(True)
 
