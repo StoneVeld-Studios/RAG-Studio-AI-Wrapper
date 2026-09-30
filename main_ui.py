@@ -1,8 +1,6 @@
 import os
 import sys
 from dataclasses import dataclass
-import urllib.request
-import json
 from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
                              QPushButton, QTextEdit, QLabel, QFileDialog,
                              QProgressBar, QCheckBox, QMessageBox, QRadioButton,
@@ -12,8 +10,9 @@ from PyQt6.QtGui import QFont
 
 # Modular package imports
 from config.settings_manager import SettingsManager
-from lib.runner_sync import OllamaSync
 from lib.token_counter import QwenTokenCounter
+from lib.core import CoreRequest, CoreResponse
+from lib.core_providers import OllamaCoreProvider
 from lib.redactor import SecurityRedactor
 from lib.kernel import Kernel, Observation
 
@@ -119,28 +118,20 @@ class FileScannerWorker(QThread):
         )
 
 
-class AIWorker(QThread):
-    """Asynchronous background execution handler for local host AI processing loops."""
-    response_received = pyqtSignal(str)
+class CoreWorker(QThread):
+    """Asynchronous execution handler for the engine-neutral Core boundary."""
+    response_received = pyqtSignal(object)
     error_occurred = pyqtSignal(str)
 
-    def __init__(self, host, model, payload):
+    def __init__(self, core, request):
         super().__init__()
-        self.host = host
-        self.model = model
-        self.payload = payload
+        self.core = core
+        self.request = request
 
     def run(self):
         try:
-            url = f"{self.host}/api/generate"
-            data = json.dumps(
-                {"model": self.model, "prompt": self.payload, "stream": False}).encode('utf-8')
-            req = urllib.request.Request(url, data=data, headers={
-                                         'Content-Type': 'application/json'}, method='POST')
-            with urllib.request.urlopen(req, timeout=600) as resp:
-                response_data = json.loads(resp.read().decode())
-                self.response_received.emit(response_data.get(
-                    "response", "No response emitted."))
+            response = self.core.generate(self.request)
+            self.response_received.emit(response)
         except Exception as e:
             self.error_occurred.emit(str(e))
 
@@ -151,14 +142,17 @@ class RAGStudioApp(QWidget):
     def __init__(self):
         super().__init__()
         self.settings = SettingsManager()
-        self.sync_engine = OllamaSync(self.settings.get("ollama_host"))
+        self.core = OllamaCoreProvider(
+            host=self.settings.get("ollama_host"),
+            model=self.settings.get("target_model"),
+            context_limit=self.settings.get("fallback_context_cap"),
+        )
         self.token_engine = QwenTokenCounter()
 
         self.active_folder = ""
         self.compiled_context = ""
         self.active_model = self.settings.get("target_model")
-        self.max_tokens = self.sync_engine.get_active_context_limit(
-            self.active_model)
+        self.max_tokens = self.core.context_limit()
         self.kernel = Kernel()
         self.kernel_result = None
 
@@ -370,8 +364,10 @@ class RAGStudioApp(QWidget):
         if self.chk_audit.isChecked():
             self.generate_corporate_audit_log(user_prompt, total_tokens)
 
-        self.worker = AIWorker(self.settings.get(
-            "ollama_host"), self.settings.get("target_model"), final_payload)
+        self.worker = CoreWorker(
+            self.core,
+            CoreRequest(context=self.compiled_context, instructions=user_prompt),
+        )
         self.worker.response_received.connect(self.handle_ai_response)
         self.worker.error_occurred.connect(self.handle_pipeline_error)
         self.worker.start()
@@ -392,8 +388,8 @@ class RAGStudioApp(QWidget):
         except Exception:
             pass
 
-    def handle_ai_response(self, response_text):
-        self.txt_console.setText(response_text)
+    def handle_ai_response(self, response: CoreResponse):
+        self.txt_console.setText(response.text)
         self.btn_dispatch.setEnabled(True)
         self.btn_save_response.setEnabled(True)
 
