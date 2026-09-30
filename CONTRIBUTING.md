@@ -1,15 +1,15 @@
-# Contributing to RAG Studio AI Wrapper
+# Contributing to RAG Trigger Studio
 
-Thank you for taking an interest in RAG Studio.
+Thank you for taking an interest in RAG Trigger Studio.
 
-RAG Studio is an open-source, local-first desktop application for preparing,
+RAG Trigger Studio is an open-source, local-first desktop application for preparing,
 inspecting, protecting, and delivering project context to a local AI model.
 
 ## Before opening an issue: **Please check existing issues and discussions first.**
 
 **For bugs, include:**
 
-- RAG Studio version or commit
+- RAG Trigger Studio version or commit
 - Operating system
 - What you were testing
 - What you expected
