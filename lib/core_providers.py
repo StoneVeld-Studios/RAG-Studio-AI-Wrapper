@@ -48,6 +48,61 @@ class OpenAICompatibleConfig:
     timeout: float = 30.0
 
 
+class OllamaCoreProvider:
+    """Core provider for Ollama's native generate API."""
+
+    provider_name = "Ollama Core"
+
+    def __init__(
+        self,
+        host: str = "http://127.0.0.1:11434",
+        model: str = "qwen2.5-coder:3b",
+        context_limit: int = 4096,
+        timeout: float = 60.0,
+    ):
+        if context_limit <= 0:
+            raise ValueError("context_limit must be positive")
+        self.host = host.rstrip("/")
+        self.model = model
+        self._context_limit = context_limit
+        self.timeout = timeout
+
+    def context_limit(self) -> int:
+        return self._context_limit
+
+    def generate(self, request: CoreRequest) -> CoreResponse:
+        payload = {
+            "model": self.model,
+            "prompt": request.context + "\n\n" + request.instructions,
+            "stream": False,
+            "options": {"num_ctx": self._context_limit},
+        }
+        http_request = Request(
+            self.host + "/api/generate",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+
+        try:
+            with urlopen(http_request, timeout=self.timeout) as response:
+                result = json.loads(response.read().decode("utf-8"))
+        except (HTTPError, URLError) as exc:
+            raise RuntimeError(f"Core request failed: {exc}") from exc
+
+        try:
+            text = result["response"]
+        except (KeyError, TypeError) as exc:
+            raise RuntimeError("Core returned an invalid generation response") from exc
+
+        return CoreResponse(
+            text=text,
+            provider=self.provider_name,
+            model=self.model,
+            context_limit=self._context_limit,
+        )
+
+
 class OpenAICompatibleProvider:
     """Provider for engines exposing an OpenAI-compatible chat endpoint."""
 
