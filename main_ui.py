@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
                              QPushButton, QTextEdit, QLabel, QFileDialog,
                              QProgressBar, QCheckBox, QMessageBox, QRadioButton,
-                             QButtonGroup, QLineEdit)
+                             QButtonGroup, QLineEdit, QTreeWidget, QTreeWidgetItem, QPlainTextEdit)
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QFont
 
@@ -151,6 +151,9 @@ class RAGStudioApp(QWidget):
 
         self.active_folder = ""
         self.compiled_context = ""
+        self.context_files = {}
+        self.selected_files = set()
+        self.last_response = None
         self.active_model = self.settings.get("target_model")
         self.max_tokens = self.core.context_limit()
         self.kernel = Kernel()
@@ -160,8 +163,8 @@ class RAGStudioApp(QWidget):
         self.apply_dark_mode_theme()
 
     def initUI(self):
-        self.setWindowTitle('RAG Studio / AI Wrapper - v2.1.0 Core Terminal')
-        self.resize(1000, 700)
+        self.setWindowTitle('RAG Trigger Studio - v2.1.1')
+        self.resize(1200, 800)
 
         main_layout = QHBoxLayout()
         left_panel = QVBoxLayout()
@@ -172,16 +175,18 @@ class RAGStudioApp(QWidget):
             QFont('DejaVu Sans', 10, QFont.Weight.Bold))
         self.btn_select_dir.clicked.connect(self.select_directory)
 
-        self.lbl_path = QLabel("System Storage Track: Standby")
+        self.lbl_core = QLabel("Core: Searching...")
+        self.lbl_core.setWordWrap(True)
+        self.lbl_path = QLabel("Project: Standby")
         self.lbl_path.setWordWrap(True)
 
-        lbl_filter_heading = QLabel("📦 Content Extraction Focus:")
+        lbl_filter_heading = QLabel("Project Contents:")
         lbl_filter_heading.setFont(QFont('DejaVu Sans', 9, QFont.Weight.Bold))
 
         self.filter_group = QButtonGroup(self)
-        self.rad_all = QRadioButton("Complete Manifest (All Records)")
-        self.rad_code = QRadioButton("Pure Source Code Engine")
-        self.rad_docs = QRadioButton("Pure Documentation & Logs")
+        self.rad_all = QRadioButton("All supported project material")
+        self.rad_code = QRadioButton("Source code")
+        self.rad_docs = QRadioButton("Documentation & logs")
         self.rad_all.setChecked(True)
 
         # Explicitly assign immutable positive IDs to resolve the -1 PyQt6 default bug
@@ -190,15 +195,15 @@ class RAGStudioApp(QWidget):
         self.filter_group.addButton(self.rad_docs, 3)
         self.filter_group.idClicked.connect(self.trigger_background_scan)
 
-        lbl_security_heading = QLabel("🛡️ Security & Privacy Parameters:")
+        lbl_security_heading = QLabel("Protection:")
         lbl_security_heading.setFont(
             QFont('DejaVu Sans', 9, QFont.Weight.Bold))
 
-        self.chk_redact = QCheckBox("Enforce Automated Pattern Redaction")
+        self.chk_redact = QCheckBox("Protect detected secrets")
         self.chk_redact.setChecked(self.settings.get("auto_redact_secrets"))
         self.chk_redact.stateChanged.connect(self.trigger_background_scan)
 
-        self.lbl_custom_key = QLabel("Precision Custom Redaction Mask String:")
+        self.lbl_custom_key = QLabel("Additional value to protect:")
         self.txt_custom_key = QLineEdit()
         self.txt_custom_key.setEchoMode(QLineEdit.EchoMode.Password)
         self.txt_custom_key.setPlaceholderText(
@@ -214,6 +219,7 @@ class RAGStudioApp(QWidget):
         self.progress_tokens = QProgressBar()
         self.progress_tokens.setMaximum(self.max_tokens)
 
+        left_panel.addWidget(self.lbl_core)
         left_panel.addWidget(self.btn_select_dir)
         left_panel.addWidget(self.lbl_path)
         left_panel.addSpacing(10)
@@ -238,22 +244,32 @@ class RAGStudioApp(QWidget):
             "Describe the operational analysis requested from the localized environment model...")
         self.txt_prompt.setMaximumHeight(100)
 
-        self.btn_dispatch = QPushButton(
-            "⚡ Execute Context Synchronization & Query")
+        self.btn_dispatch = QPushButton("Run with Local AI")
         self.btn_dispatch.setFont(QFont('DejaVu Sans', 10, QFont.Weight.Bold))
         self.btn_dispatch.clicked.connect(self.execute_pipeline)
 
-        self.lbl_console = QLabel("Offline Target AI Telemetry Core:")
+        self.lbl_console = QLabel("Core Response:")
         self.txt_console = QTextEdit()
         self.txt_console.setReadOnly(True)
         self.txt_console.setFont(QFont('DejaVu Sans Mono', 10))
-        self.txt_console.setPlaceholderText(
-            "Decoded data records and prompt generation loops stream output here...")
+        self.txt_console.setPlaceholderText("The response from your local Core will appear here...")
 
         self.btn_save_response = QPushButton(
             "💾 Export AI Response Matrix (.md)")
         self.btn_save_response.setEnabled(False)
         self.btn_save_response.clicked.connect(self.export_response_file)
+
+        self.feedback_label = QLabel("Session Feedback:")
+        self.feedback = QPlainTextEdit()
+        self.feedback.setPlaceholderText("What did you observe? What worked or failed?")
+        self.feedback.setMaximumHeight(90)
+        self.btn_diagnostics = QPushButton("Developer Diagnostics")
+        self.btn_diagnostics.setCheckable(True)
+        self.btn_diagnostics.toggled.connect(self.toggle_diagnostics)
+        self.diagnostics = QPlainTextEdit()
+        self.diagnostics.setReadOnly(True)
+        self.diagnostics.setMaximumHeight(130)
+        self.diagnostics.setVisible(False)
 
         right_panel.addWidget(self.lbl_prompt)
         right_panel.addWidget(self.txt_prompt)
@@ -262,6 +278,10 @@ class RAGStudioApp(QWidget):
         right_panel.addWidget(self.lbl_console)
         right_panel.addWidget(self.txt_console)
         right_panel.addWidget(self.btn_save_response)
+        right_panel.addWidget(self.feedback_label)
+        right_panel.addWidget(self.feedback)
+        right_panel.addWidget(self.btn_diagnostics)
+        right_panel.addWidget(self.diagnostics)
 
         main_layout.addLayout(left_panel, stretch=2)
         main_layout.addLayout(right_panel, stretch=3)
@@ -282,7 +302,8 @@ class RAGStudioApp(QWidget):
             self, "Open Repository Footprint")
         if folder:
             self.active_folder = folder
-            self.lbl_path.setText(f"Active Folder: {os.path.basename(folder)}")
+            self.lbl_path.setText(f"Project: {os.path.basename(folder)}")
+            self.lbl_core.setText(f"Core: Connected — {self.core.provider_name}")
             self.trigger_background_scan()
 
     def trigger_background_scan(self):
