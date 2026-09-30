@@ -1,6 +1,6 @@
-# RAG Studio AI Wrapper
+# RAG Trigger Studio
 
-**Version 2.1.0**
+**2.1.1 architecture work**
 
 RAG Studio AI Wrapper is a local-first desktop application for preparing, inspecting, protecting, and delivering project context
 to a local AI model. It is designed around a simple principle:
@@ -100,8 +100,7 @@ review their environment and project configuration before processing sensitive m
 
 ## Local AI Integration
 
-RAG Studio can communicate with a locally running Ollama service. The development workflow supports local coding models,
-for example: `qwen2.5-coder:3b`. The AI model is separate from the deterministic Micro-Kernel. The kernel evaluates operational conditions independently of the model.
+RAG Trigger Studio communicates with an execution **Core** through an engine-neutral provider boundary. The repository includes a deterministic Test Core for reviewer testing, an Ollama provider, and an OpenAI-compatible provider path. The deterministic Micro-Kernel remains separate from AI inference and evaluates operational conditions independently of the Core.
 
 ---
 
@@ -179,13 +178,23 @@ From the repository directory: `python3 main_ui.py`. The application launches as
 
 ## Testing
 
-RAG Studio includes automated tests for the deterministic kernel and security redaction components.
+RAG Trigger Studio uses a two-stage validation path.
 
-Run:
+### Stage 1 — deterministic repository test
 
-`pytest`
+No AI engine is required:
 
-The tests verify deterministic behaviour, validation rules, blocking conditions, and redaction behaviour.
+`pytest -q`
+
+The suite includes a deterministic Test Core and an OpenAI-compatible protocol test using a local synthetic HTTP server. GitHub reviewers can therefore validate the Core architecture without installing a model or connecting to an external service.
+
+### Stage 2 — real local Core
+
+After installing a supported local engine and model, run the optional real-engine test. For Ollama:
+
+`RAG_RUN_LOCAL_CORE=1 pytest -q tests/test_local_core.py`
+
+See [CORE_TESTING.md](CORE_TESTING.md) for the complete testing boundary and provider details.
 
 ---
 
