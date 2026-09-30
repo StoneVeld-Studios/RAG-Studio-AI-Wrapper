@@ -120,7 +120,7 @@ class AIWorker(QThread):
             self.error_occurred.emit(str(e))
 
 
-class RAGStudioApp(QWidget):
+class RAGTriggerStudioApp(QWidget):
     """Universal High-Performance Offline AI Content Orchestration Workspace."""
 
     def __init__(self):
@@ -139,7 +139,7 @@ class RAGStudioApp(QWidget):
         self.apply_dark_mode_theme()
 
     def initUI(self):
-        self.setWindowTitle('RAG Studio / AI Wrapper - v2.1.0 Core Terminal')
+        self.setWindowTitle('RAG Trigger Studio - v2.1.0 Core Terminal')
         self.resize(1000, 700)
 
         main_layout = QHBoxLayout()
@@ -345,7 +345,7 @@ class RAGStudioApp(QWidget):
         log_path = os.path.join(output_dir, "context_sync_audit.md")
         try:
             with open(log_path, 'w', encoding='utf-8') as f:
-                f.write("# RAG STUDIO: Automation Verification Audit Log\n")
+                f.write("# RAG TRIGGER STUDIO: Automation Verification Audit Log\n")
                 f.write(
                     f"**Data Pipeline Metrics:** {tokens} / {self.max_tokens} Context Tokens Allocated\n\n")
                 f.write("## 📝 Instruction Profile Query\n> " + prompt + "\n\n")
@@ -382,6 +382,6 @@ class RAGStudioApp(QWidget):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    ex = RAGStudioApp()
+    ex = RAGTriggerStudioApp()
     ex.show()
     sys.exit(app.exec())

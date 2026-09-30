@@ -30,7 +30,7 @@ class KernelResult:
 
 class Kernel:
     """
-    Small deterministic decision kernel for RAG Studio.
+    Small deterministic decision kernel for RAG Trigger Studio.
 
     The kernel observes facts supplied by the application,
     validates their consistency, compares them against explicit
