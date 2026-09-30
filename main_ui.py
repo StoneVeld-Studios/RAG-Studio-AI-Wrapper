@@ -497,7 +497,7 @@ class RAGStudioApp(QWidget):
         log_path = os.path.join(output_dir, "context_sync_audit.md")
         try:
             with open(log_path, 'w', encoding='utf-8') as f:
-                f.write("# RAG STUDIO: Automation Verification Audit Log\n")
+                f.write("# RAG TRIGGER STUDIO: Automation Verification Audit Log\n")
                 f.write(
                     f"**Data Pipeline Metrics:** {tokens} / {self.max_tokens} Context Tokens Allocated\n\n")
                 f.write("## Session Facts\n")\n                f.write(f"- Provider: {self.core.provider_name}\\n")\n                f.write(f"- Model: {self.core.model}\\n")\n                f.write(f"- Selected files: {len(self.selected_files)} / {len(self.context_files)}\\n")\n                f.write(f"- Context tokens: {self.token_engine.calculate_tokens(self.compiled_context)}\\n")\n                f.write(f"- Instruction tokens: {self.token_engine.calculate_tokens(prompt)}\\n")\n                f.write(f"- Redactions: {self.kernel_result.observation.redaction_count if self.kernel_result else 0}\\n")\n                f.write("\\n## Session Feedback\\n" + self.feedback.toPlainText() + "\\n")\n        except Exception:
