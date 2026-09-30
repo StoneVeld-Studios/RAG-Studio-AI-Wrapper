@@ -179,7 +179,7 @@ class RAGStudioApp(QWidget):
             QFont('DejaVu Sans', 10, QFont.Weight.Bold))
         self.btn_select_dir.clicked.connect(self.select_directory)
 
-        self.lbl_core = QLabel("Core: Searching...")
+        self.lbl_core = QLabel(f"Core: Configured — {self.core.provider_name}")
         self.lbl_core.setWordWrap(True)
         self.lbl_path = QLabel("Project: Standby")
         self.lbl_path.setWordWrap(True)
@@ -500,10 +500,7 @@ class RAGStudioApp(QWidget):
                 f.write("# RAG STUDIO: Automation Verification Audit Log\n")
                 f.write(
                     f"**Data Pipeline Metrics:** {tokens} / {self.max_tokens} Context Tokens Allocated\n\n")
-                f.write("## 📝 Instruction Profile Query\n> " + prompt + "\n\n")
-                f.write("## 🗄️ Transmitted Storage Manifest Payload\n```text\n" +
-                        self.compiled_context + "\n```\n")
-        except Exception:
+                f.write("## Session Facts\n")\n                f.write(f"- Provider: {self.core.provider_name}\\n")\n                f.write(f"- Model: {self.core.model}\\n")\n                f.write(f"- Selected files: {len(self.selected_files)} / {len(self.context_files)}\\n")\n                f.write(f"- Context tokens: {self.token_engine.calculate_tokens(self.compiled_context)}\\n")\n                f.write(f"- Instruction tokens: {self.token_engine.calculate_tokens(prompt)}\\n")\n                f.write(f"- Redactions: {self.kernel_result.observation.redaction_count if self.kernel_result else 0}\\n")\n                f.write("\\n## Session Feedback\\n" + self.feedback.toPlainText() + "\\n")\n        except Exception:
             pass
 
     def handle_ai_response(self, response: CoreResponse):
