@@ -4,13 +4,68 @@
 Planned.
 This document records the scope and intended sequence for the RAG Studio 2.1.1 upgrade. It is a planning record, not evidence that the planned changes have been implemented.
 
+## Product Direction
+
+The working product name is **RAG Trigger Studio**.
+
+The name should communicate quick, direct work rather than struggle or complexity. The application should feel like a fast local tool that gets the developer from project material to a local AI answer with as little friction as possible.
+
+Broader power-user features are recorded separately under **Next-Version Suggestions** and are not part of the 2.1.1 implementation boundary.
+
+## Approved Interface Direction
+
+### Local AI Core discovery
+
+The user-facing discovery state is:
+
+**Searching for Core...**
+
+Here, **Core** means establishing a connection through the engine with the local AI.
+
+Before discovery, the interface may show **Local Engine** or **Searching for Core...**. After discovery, it should dynamically identify the discovered local engine/model, for example **Ollama: Llama 3** or **Mistral (Local)**.
+
+Core represents the connection through the engine to the local AI; it is not the AI model itself.
+
+### Local AI action
+
+The primary AI action should be:
+
+**Run with Local AI**
+
+This replaces overly mechanical context-synchronization/query terminology.
+
+### Project/file tree
+
+The user should see the actual folder/file hierarchy after opening a project or data folder.
+
+Folders should be expandable/collapsible, with inclusion/exclusion visible at folder and file level.
+
+Automatically excluded folders/files should remain **visible but collapsed** by default. This preserves transparency without overwhelming the normal view.
+
+### Feedback
+
+**Session Feedback** should remain completely free-form. The application may automatically attach factual session information to the verification record.
+
+### Developer Diagnostics
+
+A dedicated **Developer Diagnostics** concept should expose technical details without cluttering the normal interface. A developer switch may enable additional diagnostic information.
+
+The kernel remains a deterministic evaluator, not the logging system.
+
+The intended separation is:
+
+**Application observes → Kernel evaluates → Diagnostic layer reports**
+
+### Token measurement
+
+Where token measurement is estimated because the tokenizer is unavailable, the developer should be able to distinguish **Estimated** from **Tokenizer** measurement.
+
 ## Origin
 The plan follows external QA work tracked in GitHub Issue #5: **[QA Testing] Cross-Platform UI Rendering and Context Loading Verification**.
 Issue #5 asked external testers to exercise real project directories and report UI, context loading, and truncation problems.
 Manual local testing then exposed a larger context-management problem:
-- Guardian project: approximately 50,729 tokens (1238% of the observed context limit).
-- ExperimentalOS project: approximately 109,513 tokens (2673% of the observed context limit).
-- Existing selection modes did not provide enough control to reduce these projects to a useful working context.
+- Manual testing showed that real development projects can produce context far beyond the active local model limit.
+- Existing selection modes did not provide enough control over individual folders and files to reduce large projects to a useful working context.
 These observations are the motivation for 2.1.1.
 
 ## Problem
@@ -174,6 +229,15 @@ This plan does not replace those records.
 ## Implementation Sequence
 1. Inspect the current GUI structure and existing controls.
 2. Convert this plan into an exact, minimal implementation/change list.
+3. Design the visible folder/file tree and deterministic inclusion/exclusion behaviour.
+4. Add automatic exclusion visibility and explanations.
+5. Add token-budget and instruction-impact visibility.
+6. Add token measurement transparency.
+7. Improve GUI wording and descriptions.
+8. Add Core discovery state and dynamic engine/model display.
+9. Rename the primary AI action to Run with Local AI.
+10. Add Developer Diagnostics.
+11. Add free-form Session Feedback and verification-audit export.
 3. Design the folder/file selection model without changing scanner semantics unnecessarily.
 4. Add deterministic selection/exclusion behavior.
 5. Add token-budget and instruction-impact visibility.
@@ -186,6 +250,16 @@ This plan does not replace those records.
 12. Record the resulting evidence and remaining limitations.
 13. Prepare the 2.1.1 release/PR only after the evidence is satisfactory.
 
+
+## GitHub Review and Interaction Plan
+
+The intended release path is:
+
+**Issue #5** → implementation branch → focused commits → local tests → GitHub Actions → documented evidence → Pull Request into **main** → Issue #5 referenced from the PR → external review and discussion → continued testing → eventual merge when the evidence supports it.
+
+Issue #5 should remain open during this work. It is the broader external QA and interaction anchor and should not be closed merely because 2.1.1 is implemented.
+
+
 ## Release Boundary
 The intended outcome is a focused **RAG Studio v2.1.1** upgrade centered on context selection, exclusion, token visibility, and clearer human-facing operation.
 Version 2.1.1 should be treated as complete only when the implemented behavior, tests, manual observations, CI evidence, and documentation agree.
@@ -193,3 +267,73 @@ Version 2.1.1 should be treated as complete only when the implemented behavior, 
 ## Next Immediate Action
 **Read-only inspection of the current GUI structure and controls.**
 No implementation change should be made from this plan alone. The next implementation step should follow an explicit change list derived from the actual current UI.
+
+# Next-Version Suggestions
+
+These ideas are deliberately **not part of 2.1.1**. They are candidate research and development areas so useful ideas are retained without expanding the current release boundary.
+
+## 1. Headless CLI and Piping
+
+Expose the same underlying RAG operation through a command-line interface for scanning paths, supplying prompts, piping stdin, and writing results to stdout or files.
+
+The CLI should use the same underlying engine/context path rather than becoming a second implementation.
+
+## 2. Terminal Integration
+
+Develop a proper terminal-facing developer mode with structured diagnostics rather than scattered print statements.
+
+Potential information includes scan lifecycle, file counts, exclusions, redactions, token measurement, context limits, Core discovery, kernel decisions, dispatch state, errors, and timing.
+
+The terminal should be an additional developer interface, not a competing application control system.
+
+## 3. Git-Aware Context Selection
+
+Investigate deterministic modes such as **Scan Git Diff Only**, **Scan Changed Files**, and working-tree change selection.
+
+## 4. .ragignore
+
+Investigate a project-local exclusion configuration similar in spirit to .gitignore for recurring project-specific exclusions.
+
+## 5. .ragredact
+
+Investigate a project-local redaction configuration for custom sensitive patterns. This should remain distinct from ordinary context exclusion.
+
+## 6. Developer-Controlled Token Budgeting
+
+Investigate visible token-budget controls, including reserved space for instructions and clear preview of the effect of changing the budget.
+
+Automatic prioritisation should not be introduced without evidence that its behaviour remains transparent and controllable.
+
+## 7. Deterministic Context Prioritisation
+
+Investigate explicit, explainable prioritisation such as recently modified files, explicitly selected files, Git-changed files, file-type priorities, or manually assigned project categories.
+
+The application should clearly show what was removed and why.
+
+## 8. Structural Code Understanding
+
+Investigate AST/Tree-sitter-based code selection to preserve logical code boundaries such as functions, classes, and methods instead of arbitrary line-based splitting.
+
+This should be researched rather than assumed to improve results.
+
+## 9. Local IDE Integration
+
+Investigate a lightweight local API or protocol for VS Code, Neovim, and other developer tools so they can use the same local RAG engine without duplicating the application.
+
+## 10. Fast Access Interface
+
+Investigate a minimal hotkey-driven interface for rapid local queries. Any global shortcut or desktop integration should be treated as a separate platform-specific research area.
+
+## 11. Multiple Context Packages
+
+If evidence shows that one context cannot reasonably represent large projects, investigate multiple explicit context packages rather than silently truncating one.
+
+The user should remain able to see what belongs to each package and what is sent for a particular operation.
+
+## Future-Version Principle
+
+Future features should preserve the central product direction:
+
+**RAG Trigger Studio should make local AI work faster without making the developer surrender control of the context.**
+
+Power-user features should reduce friction while keeping selection, security, token impact, and operation observable.
