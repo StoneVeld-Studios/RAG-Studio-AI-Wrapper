@@ -26,6 +26,7 @@ class ScanResult:
     read_failures: int
     redaction_count: int
     token_count: int
+    file_contents: dict
 
 
 class FileScannerWorker(QThread):
@@ -46,6 +47,7 @@ class FileScannerWorker(QThread):
 
     def run(self):
         assembled_text = ""
+        file_contents = {}
         files_discovered = 0
         files_included = 0
         files_excluded = 0
@@ -93,6 +95,7 @@ class FileScannerWorker(QThread):
                             redaction_count += file_redactions
 
                         rel_path = os.path.relpath(file_path, self.folder)
+                        file_contents[rel_path] = content
                         assembled_text += f"\n\n--- FILE: {rel_path} ---\n" + content
                         files_included += 1
 
@@ -114,6 +117,7 @@ class FileScannerWorker(QThread):
                 read_failures=read_failures,
                 redaction_count=redaction_count,
                 token_count=total_tokens,
+                file_contents=file_contents,
             )
         )
 
@@ -233,8 +237,16 @@ class RAGStudioApp(QWidget):
         left_panel.addWidget(self.lbl_custom_key)
         left_panel.addWidget(self.txt_custom_key)
         left_panel.addWidget(self.chk_audit)
+        self.tree = QTreeWidget()
+        self.tree.setHeaderLabels(["Project Contents", "State"])
+        self.tree.itemChanged.connect(self.handle_tree_change)
+        left_panel.addWidget(self.tree, stretch=1)
         left_panel.addStretch()
+        self.lbl_instruction_tokens = QLabel("Instruction: +0 tokens")
+        self.lbl_total_tokens = QLabel(f"Total before send: 0 / {self.max_tokens}")
         left_panel.addWidget(self.lbl_token_count)
+        left_panel.addWidget(self.lbl_instruction_tokens)
+        left_panel.addWidget(self.lbl_total_tokens)
         left_panel.addWidget(self.progress_tokens)
 
         self.lbl_prompt = QLabel(
@@ -243,6 +255,7 @@ class RAGStudioApp(QWidget):
         self.txt_prompt.setPlaceholderText(
             "Describe the operational analysis requested from the localized environment model...")
         self.txt_prompt.setMaximumHeight(100)
+        self.txt_prompt.textChanged.connect(self.update_instruction_budget)
 
         self.btn_dispatch = QPushButton("Run with Local AI")
         self.btn_dispatch.setFont(QFont('DejaVu Sans', 10, QFont.Weight.Bold))
@@ -329,7 +342,10 @@ class RAGStudioApp(QWidget):
 
     def handle_scan_complete(self, scan_result):
         """Triggered smoothly when background thread completes traversal calculations."""
-        self.compiled_context = scan_result.assembled_text
+        self.context_files = scan_result.file_contents
+        self.selected_files = set(self.context_files)
+        self.build_project_tree()
+        self.rebuild_context()
         observation = Observation(
             files_discovered=scan_result.files_discovered,
             files_included=scan_result.files_included,
@@ -346,7 +362,7 @@ class RAGStudioApp(QWidget):
         pct = int((total_tokens / self.max_tokens) *
                   100) if self.max_tokens > 0 else 0
         self.lbl_token_count.setText(
-            f"Context Footprint: {total_tokens} / {self.max_tokens} Tokens ({pct}% Full)")
+            f"Context: {total_tokens} / {self.max_tokens} tokens ({pct}% full)")
         self.progress_tokens.setValue(min(total_tokens, self.max_tokens))
 
         if total_tokens > self.max_tokens:
