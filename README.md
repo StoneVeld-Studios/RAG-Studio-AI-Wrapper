@@ -1,18 +1,18 @@
-# RAG Studio AI Wrapper
+# RAG Trigger Studio
 
 **Version 2.1.0**
 
-RAG Studio AI Wrapper is a local-first desktop application for preparing, inspecting, protecting, and delivering project context
+RAG Trigger Studio is a local-first desktop application for preparing, inspecting, protecting, and delivering project context
 to a local AI model. It is designed around a simple principle:
 
 > **Audit the operation, not the customer's content.**
 
-RAG Studio helps developers work with large project codebases by providing context collection, token accounting, security redaction,
+RAG Trigger Studio helps developers work with large project codebases by providing context collection, token accounting, security redaction,
 deterministic safety evaluation, and local model integration.
 
 ---
 
-## Why RAG Studio?
+## Why RAG Trigger Studio?
 
 Working with AI against a real codebase creates several practical problems:
 
@@ -22,7 +22,7 @@ Working with AI against a real codebase creates several practical problems:
 * AI pipelines need clear operational boundaries.
 * Audit information should not unnecessarily reproduce customer source material.
 
-RAG Studio is designed to make these conditions visible and controllable.
+RAG Trigger Studio is designed to make these conditions visible and controllable.
 
 ---
 
@@ -72,7 +72,7 @@ The kernel is deliberately small and independent of AI inference.
 
 ## Security Redaction
 
-RAG Studio includes a text-based `SecurityRedactor`. It detects and replaces common sensitive values including:
+RAG Trigger Studio includes a text-based `SecurityRedactor`. It detects and replaces common sensitive values including:
 
 * passwords
 * secrets
@@ -100,7 +100,7 @@ review their environment and project configuration before processing sensitive m
 
 ## Local AI Integration
 
-RAG Studio can communicate with a locally running Ollama service. The development workflow supports local coding models,
+RAG Trigger Studio can communicate with a locally running Ollama service. The development workflow supports local coding models,
 for example: `qwen2.5-coder:3b`. The AI model is separate from the deterministic Micro-Kernel. The kernel evaluates operational conditions independently of the model.
 
 ---
@@ -183,7 +183,7 @@ RAG Studio includes automated tests for the deterministic kernel and security re
 
 Run:
 
-`pytest`
+`python -m pytest -q`
 
 The tests verify deterministic behaviour, validation rules, blocking conditions, and redaction behaviour.
 
@@ -191,7 +191,7 @@ The tests verify deterministic behaviour, validation rules, blocking conditions,
 
 ## Privacy Boundaries
 
-RAG Studio is designed for local-first operation. The project intentionally separates operational auditing from
+RAG Trigger Studio is designed for local-first operation. The project intentionally separates operational auditing from
 customer content. Generated runtime material such as:
 
 * local configuration
@@ -212,7 +212,7 @@ responsible for verifying the environment in which they run RAG Studio.
 
 ## Repository Structure
 
-RAG-Studio-AI-Wrapper/
+RAG_Trigger_Studio/
 lib/
 kernel.py
 redactor.py
