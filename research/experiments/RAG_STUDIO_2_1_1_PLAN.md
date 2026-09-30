@@ -1,8 +1,8 @@
-# RAG Studio 2.1.1 — Context Selection & Human-Facing Context Control
+# RAG Trigger Studio 2.1.1 — Context Selection & Human-Facing Context Control
 
 ## Status
 Planned.
-This document records the scope and intended sequence for the RAG Studio 2.1.1 upgrade. It is a planning record, not evidence that the planned changes have been implemented.
+This document records the scope and intended sequence for the RAG Trigger Studio 2.1.1 upgrade. It is a planning record, not evidence that the planned changes have been implemented.
 
 ## Product Direction
 
@@ -69,16 +69,16 @@ Manual local testing then exposed a larger context-management problem:
 These observations are the motivation for 2.1.1.
 
 ## Problem
-RAG Studio currently assembles selected project material into one context. The scanner already excludes some common development directories, but the user has limited control over individual folders and files.
+RAG Trigger Studio currently assembles selected project material into one context. The scanner already excludes some common development directories, but the user has limited control over individual folders and files.
 Large real-world projects can therefore produce a context far beyond the active local model limit.
 The goal is not to hide this problem through silent truncation or automatic packaging. The goal is to give the user clearer, deterministic control over what becomes context.
 
 ## Research Question
-Can RAG Studio provide understandable, deterministic folder/file selection and exclusion controls while making the resulting context size and dispatch impact visible to the user?
+Can RAG Trigger Studio provide understandable, deterministic folder/file selection and exclusion controls while making the resulting context size and dispatch impact visible to the user?
 
 ## Core Design Principle
 **The project is the source. The user creates the context.**
-RAG Studio should help the user understand and control selection rather than silently deciding what the AI should receive.
+RAG Trigger Studio should help the user understand and control selection rather than silently deciding what the AI should receive.
 
 ## Planned Context Selection Model
 Selection should be hierarchical:
@@ -261,7 +261,7 @@ Issue #5 should remain open during this work. It is the broader external QA and 
 
 
 ## Release Boundary
-The intended outcome is a focused **RAG Studio v2.1.1** upgrade centered on context selection, exclusion, token visibility, and clearer human-facing operation.
+The intended outcome is a focused **RAG Trigger Studio v2.1.1** upgrade centered on context selection, exclusion, token visibility, and clearer human-facing operation.
 Version 2.1.1 should be treated as complete only when the implemented behavior, tests, manual observations, CI evidence, and documentation agree.
 
 ## Next Immediate Action
