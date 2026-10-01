@@ -27,6 +27,8 @@ class ScanResult:
     redaction_count: int
     token_count: int
     file_contents: dict
+    excluded_paths: tuple
+    file_redactions: dict
 
 
 class FileScannerWorker(QThread):
@@ -53,6 +55,9 @@ class FileScannerWorker(QThread):
         files_excluded = 0
         read_failures = 0
         redaction_count = 0
+        excluded_paths = []
+        file_redactions = {}
+        excluded_dir_names = {'.venv', '.git', 'output', '__pycache__'}
 
         # Comprehensive extensions arrays targeting all layout focus possibilities
         if self.filter_id == 2:    # Pure Source Code Engine
@@ -65,9 +70,16 @@ class FileScannerWorker(QThread):
             target_exts = ('.py', '.c', '.h', '.sh', '.cpp', '.hpp', '.java', '.cs', '.js', '.ts', '.go', '.rs',
                            '.md', '.txt', '.log', '.json', '.yaml', '.xml', '.csv', '.ini', '.conf', '.cfg', '')
 
-        for root, _, files in os.walk(self.folder):
-            if '.venv' in root or '.git' in root or 'output' in root or '__pycache__' in root:
-                continue
+        for root, dirs, files in os.walk(self.folder):
+            kept_dirs = []
+            for directory in dirs:
+                if directory in excluded_dir_names:
+                    excluded_paths.append(os.path.relpath(
+                        os.path.join(root, directory), self.folder
+                    ))
+                else:
+                    kept_dirs.append(directory)
+            dirs[:] = kept_dirs
 
             for file in files:
                 files_discovered += 1
@@ -88,14 +100,16 @@ class FileScannerWorker(QThread):
                             with open(file_path, 'r', encoding='latin-1', errors='replace') as f:
                                 content = f.read()
 
+                        file_redaction_count = 0
                         if self.redact_checked or (self.custom_key and len(self.custom_key) > 2):
-                            content, file_redactions = self.redactor.scrub_text(
+                            content, file_redaction_count = self.redactor.scrub_text(
                                 content, self.custom_key
                             )
-                            redaction_count += file_redactions
+                            redaction_count += file_redaction_count
 
                         rel_path = os.path.relpath(file_path, self.folder)
                         file_contents[rel_path] = content
+                        file_redactions[rel_path] = file_redaction_count
                         assembled_text += f"\n\n--- FILE: {rel_path} ---\n" + content
                         files_included += 1
 
@@ -106,6 +120,7 @@ class FileScannerWorker(QThread):
                         )
                 else:
                     files_excluded += 1
+                    excluded_paths.append(os.path.relpath(file_path, self.folder))
 
         total_tokens = self.token_engine.calculate_tokens(assembled_text)
         self.scan_complete.emit(
@@ -118,6 +133,8 @@ class FileScannerWorker(QThread):
                 redaction_count=redaction_count,
                 token_count=total_tokens,
                 file_contents=file_contents,
+                excluded_paths=tuple(sorted(set(excluded_paths))),
+                file_redactions=file_redactions,
             )
         )
 
@@ -157,6 +174,7 @@ class RAGStudioApp(QWidget):
         self.compiled_context = ""
         self.context_files = {}
         self.selected_files = set()
+        self.scan_result = None
         self.last_response = None
         self.active_model = self.settings.get("target_model")
         self.max_tokens = self.core.context_limit()
@@ -342,23 +360,15 @@ class RAGStudioApp(QWidget):
 
     def handle_scan_complete(self, scan_result):
         """Triggered smoothly when background thread completes traversal calculations."""
+        self.scan_result = scan_result
         self.context_files = scan_result.file_contents
         self.selected_files = set(self.context_files)
         self.build_project_tree()
         self.rebuild_context()
-        observation = Observation(
-            files_discovered=scan_result.files_discovered,
-            files_included=scan_result.files_included,
-            files_excluded=scan_result.files_excluded,
-            read_failures=scan_result.read_failures,
-            redaction_count=scan_result.redaction_count,
-            token_count=scan_result.token_count,
-            token_limit=self.max_tokens,
-        )
-        self.kernel_result = self.kernel.evaluate(observation)
+        self.evaluate_final_context()
 
         # Calculate true contextual progress metrics tracking loop
-        total_tokens = scan_result.token_count
+        total_tokens = self.token_engine.calculate_tokens(self.compiled_context)
         pct = int((total_tokens / self.max_tokens) *
                   100) if self.max_tokens > 0 else 0
         self.lbl_token_count.setText(
@@ -382,43 +392,129 @@ class RAGStudioApp(QWidget):
     def build_project_tree(self):
         self.tree.blockSignals(True)
         self.tree.clear()
-        root = QTreeWidgetItem([os.path.basename(self.active_folder) or self.active_folder, "Project"])
-        root.setFlags(root.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+
+        root_name = os.path.basename(self.active_folder) or self.active_folder
+        root = QTreeWidgetItem([root_name, "Project"])
+        root.setFlags(
+            root.flags()
+            | Qt.ItemFlag.ItemIsUserCheckable
+            | Qt.ItemFlag.ItemIsAutoTristate
+        )
         root.setCheckState(0, Qt.CheckState.Checked)
+        root.setToolTip(0, "Select or clear all available project material.")
         self.tree.addTopLevelItem(root)
+
         nodes = {"": root}
-        for rel_path in sorted(self.context_files):
+        all_paths = set(self.context_files) | set(self.scan_result.excluded_paths)
+
+        for rel_path in sorted(all_paths):
             parent = root
             key = ""
-            for part in rel_path.split(os.sep):
+            parts = rel_path.split(os.sep)
+            is_excluded = rel_path in set(self.scan_result.excluded_paths)
+
+            for index, part in enumerate(parts):
                 key = os.path.join(key, part) if key else part
+                is_leaf = index == len(parts) - 1
+
                 if key not in nodes:
-                    item = QTreeWidgetItem([part, "Included"])
-                    item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-                    item.setCheckState(0, Qt.CheckState.Checked)
+                    item = QTreeWidgetItem([part, "Excluded automatically" if is_excluded and is_leaf else "Folder"])
                     parent.addChild(item)
                     nodes[key] = item
+
+                    if is_excluded and is_leaf:
+                        item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+                        item.setCheckState(0, Qt.CheckState.Unchecked)
+                        item.setDisabled(True)
+                        item.setToolTip(
+                            0,
+                            "Excluded automatically by the current project scan. "
+                            "This material cannot be selected for context."
+                        )
+                    else:
+                        item.setFlags(
+                            item.flags()
+                            | Qt.ItemFlag.ItemIsUserCheckable
+                            | Qt.ItemFlag.ItemIsAutoTristate
+                        )
+                        item.setCheckState(0, Qt.CheckState.Checked)
+                        item.setToolTip(
+                            0,
+                            "Select this folder to include all selectable files beneath it."
+                        )
+
                 parent = nodes[key]
+
+            if not is_excluded:
+                parent.setData(0, Qt.ItemDataRole.UserRole, rel_path)
+                parent.setText(1, "Included")
+
         root.setExpanded(True)
         self.tree.blockSignals(False)
 
-    def handle_tree_change(self, item, column):
-        if column != 0:
+    def _set_descendant_state(self, item, state):
+        for index in range(item.childCount()):
+            child = item.child(index)
+            if child.isDisabled():
+                continue
+            child.setCheckState(0, state)
+            self._set_descendant_state(child, state)
+
+    def _collect_selected_files(self, item):
+        path = item.data(0, Qt.ItemDataRole.UserRole)
+        if path in self.context_files and item.childCount() == 0:
+            if item.checkState(0) == Qt.CheckState.Checked:
+                self.selected_files.add(path)
+            item.setText(1, "Included" if item.checkState(0) == Qt.CheckState.Checked else "Not selected")
             return
+
+        for index in range(item.childCount()):
+            self._collect_selected_files(item.child(index))
+
+    def handle_tree_change(self, item, column):
+        if column != 0 or item.isDisabled():
+            return
+
+        self.tree.blockSignals(True)
+        if item.childCount() > 0:
+            state = item.checkState(0)
+            if state == Qt.CheckState.PartiallyChecked:
+                state = Qt.CheckState.Unchecked
+                item.setCheckState(0, state)
+            self._set_descendant_state(item, state)
+
         self.selected_files.clear()
-        def collect(node, prefix=""):
-            name = node.text(0)
-            path = os.path.join(prefix, name) if prefix else name
-            if node.childCount() == 0 and path in self.context_files:
-                included = node.checkState(0) == Qt.CheckState.Checked
-                node.setText(1, "Included" if included else "Excluded")
-                if included:
-                    self.selected_files.add(path)
-            for i in range(node.childCount()):
-                collect(node.child(i), path)
-        for i in range(self.tree.topLevelItemCount()):
-            collect(self.tree.topLevelItem(i))
+        for index in range(self.tree.topLevelItemCount()):
+            self._collect_selected_files(self.tree.topLevelItem(index))
+
+        self.tree.blockSignals(False)
         self.rebuild_context()
+        self.evaluate_final_context()
+
+    def evaluate_final_context(self):
+        if self.scan_result is None:
+            self.kernel_result = None
+            return
+
+        selected_count = len(self.selected_files)
+        deselected_count = max(self.scan_result.files_included - selected_count, 0)
+        selected_redactions = sum(
+            self.scan_result.file_redactions.get(path, 0)
+            for path in self.selected_files
+        )
+        final_token_count = self.token_engine.calculate_tokens(self.compiled_context)
+
+        observation = Observation(
+            files_discovered=self.scan_result.files_discovered,
+            files_included=selected_count,
+            files_excluded=self.scan_result.files_excluded + deselected_count,
+            read_failures=self.scan_result.read_failures,
+            redaction_count=selected_redactions,
+            token_count=final_token_count,
+            token_limit=self.max_tokens,
+        )
+        self.kernel_result = self.kernel.evaluate(observation)
+        self.update_diagnostics()
 
     def rebuild_context(self):
         self.compiled_context = "".join(
@@ -500,7 +596,26 @@ class RAGStudioApp(QWidget):
                 f.write("# RAG TRIGGER STUDIO: Automation Verification Audit Log\n")
                 f.write(
                     f"**Data Pipeline Metrics:** {tokens} / {self.max_tokens} Context Tokens Allocated\n\n")
-                f.write("## Session Facts\n")\n                f.write(f"- Provider: {self.core.provider_name}\\n")\n                f.write(f"- Model: {self.core.model}\\n")\n                f.write(f"- Selected files: {len(self.selected_files)} / {len(self.context_files)}\\n")\n                f.write(f"- Context tokens: {self.token_engine.calculate_tokens(self.compiled_context)}\\n")\n                f.write(f"- Instruction tokens: {self.token_engine.calculate_tokens(prompt)}\\n")\n                f.write(f"- Redactions: {self.kernel_result.observation.redaction_count if self.kernel_result else 0}\\n")\n                f.write("\\n## Session Feedback\\n" + self.feedback.toPlainText() + "\\n")\n        except Exception:
+                f.write("## Session Facts\n")
+                f.write(f"- Provider: {self.core.provider_name}\n")
+                f.write(f"- Model: {self.core.model}\n")
+                f.write(
+                    f"- Selected files: {len(self.selected_files)} / {len(self.context_files)}\n"
+                )
+                f.write(
+                    f"- Context tokens: {self.token_engine.calculate_tokens(self.compiled_context)}\n"
+                )
+                f.write(
+                    f"- Instruction tokens: {self.token_engine.calculate_tokens(prompt)}\n"
+                )
+                f.write(
+                    f"- Redactions: {self.kernel_result.observation.redaction_count if self.kernel_result else 0}\n"
+                )
+                f.write(
+                    "\n## Session Feedback\n"
+                    + self.feedback.toPlainText()
+                    + "\n"
+                )\n        except Exception:
             pass
 
     def handle_ai_response(self, response: CoreResponse):
