@@ -134,10 +134,11 @@ def test_kernel_observes_final_selected_context_not_full_scan():
     )()
     app.evaluate_final_context()
 
-    observation = app.kernel_result.observation
-    assert observation.files_discovered == 3
-    assert observation.files_included == 1
-    assert observation.files_excluded == 2
-    assert observation.redaction_count == 1
-    assert observation.token_count == 1
+    observation = app.kernel_result.observations
+    assert observation["files_discovered"] == 3
+    assert observation["files_included"] == 1
+    assert observation["files_excluded"] == 2
+    assert observation["read_failures"] == 0
+    assert observation["redaction_count"] == 1
+    assert observation["token_count"] == 1
     assert app.kernel_result.state == KernelState.SAFE
