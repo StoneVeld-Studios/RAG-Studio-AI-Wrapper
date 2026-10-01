@@ -52,15 +52,27 @@ This is direct evidence that changing the selected context changes the final fac
 
 ### Full-suite status
 
-The last complete-suite run before the final targeted-test correction reported:
+After the final targeted-test correction, the complete deterministic test suite was run again from the repository root.
 
-- 30 passed
-- 1 skipped
-- 1 failed
+The resulting local test status was:
 
-The remaining failure was the test API mismatch described above. The targeted test was then corrected and passed.
+* 31 passed
+* 1 skipped
 
-A new complete-suite run is still required before this branch is considered fully green.
+The skipped test is the real local Ollama Core integration test. It is intentionally opt-in and requires `RAG_RUN_LOCAL_CORE=1`, because it depends on a locally running Ollama service and model rather than the deterministic repository test environment.
+
+The deterministic Stage 1 suite is therefore green.
+
+The corresponding GitHub Actions run on the current branch also completed successfully, including:
+
+* Python 3.14 environment setup
+* Linux Qt/EGL runtime dependency installation
+* dependency installation
+* application compilation
+* complete pytest suite
+
+The real local Ollama integration remains a separate Stage 2 evidence boundary and is not required for the deterministic GitHub Actions suite.
+
 
 ## Manual application QA
 
@@ -200,12 +212,32 @@ The desired evidence chain is:
 
 No production behaviour should be changed merely to make a test pass when the evidence shows the test is reading an API incorrectly.
 
-## Remaining work before release/merge
+## Remaining work and follow-up
 
-1. Complete the expanded synthetic QA workspace.
-2. Implement the agreed small UX improvements.
-3. Run the complete automated suite again.
-4. Repeat the relevant manual GUI scenarios.
-5. Record the final results.
-6. Review the complete branch diff.
-7. Only then consider the 2.1.1 pull request ready for review/merge.
+The core 2.1.1 implementation and deterministic test path have now been validated.
+
+Completed evidence includes:
+
+1. The final targeted Kernel observation test was corrected against the actual `KernelResult.observations` API.
+2. The complete deterministic local suite passes with 31 tests passing and 1 intentionally skipped Stage 2 integration test.
+3. GitHub Actions passes on the current branch, including the Linux Qt/EGL runtime setup.
+4. Installation and testing procedures are documented separately in `docs/INSTALLATION.md` and `CORE_TESTING.md`.
+5. Manual application QA has been performed and the observed behaviour is recorded above.
+6. The branch has been reviewed against the current `main` line, with final reconciliation still pending'
+
+The following items remain as follow-up work rather than unresolved evidence failures:
+
+* Expand the synthetic QA workspace into the planned QA-01 through QA-08 reviewer scenarios.
+* Implement the small UX improvements identified during manual use.
+* Repeat additional GUI scenarios where useful for future tester coverage.
+* Continue improving reviewer/tester documentation as new evidence is gathered.
+
+These follow-up items should not be represented as evidence that the deterministic 2.1.1 test path is failing.
+
+The evidence boundary remains explicit:
+
+**Stage 1:** deterministic repository tests and CI validation.
+
+**Stage 2:** real local Ollama/Core integration, requiring a locally available serving engine and model.
+
+The branch can therefore proceed through the normal review and merge process once the final branch reconciliation and review checks are complete.
