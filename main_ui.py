@@ -84,13 +84,12 @@ class FileScannerWorker(QThread):
             for file in files:
                 files_discovered += 1
                 file_lower = file.lower()
+                file_path = os.path.join(root, file)
 
                 # Match target extensions or accept files without any extension tag if docs are selected
                 if any(file_lower.endswith(ext) for ext in target_exts if ext) or (
                     '' in target_exts and '.' not in file
                 ):
-                    file_path = os.path.join(root, file)
-
                     try:
                         # Dual-layer robust encoding fallback reader mechanism
                         try:
@@ -615,7 +614,8 @@ class RAGStudioApp(QWidget):
                     "\n## Session Feedback\n"
                     + self.feedback.toPlainText()
                     + "\n"
-                )\n        except Exception:
+                )
+        except Exception:
             pass
 
     def handle_ai_response(self, response: CoreResponse):
