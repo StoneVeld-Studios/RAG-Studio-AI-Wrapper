@@ -1,0 +1,4 @@
+Synthetic credential example:
+Authorization: Bearer SYNTHETIC_QA_TOKEN_DO_NOT_USE
+
+This value exists only to exercise redaction and must never be treated as a real credential.
