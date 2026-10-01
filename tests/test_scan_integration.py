@@ -14,7 +14,7 @@ from main_ui import FileScannerWorker, RAGStudioApp, ScanResult
 from lib.kernel import Kernel, KernelState, Observation
 
 
-undefined
+QT_APP = QApplication.instance() or QApplication([])
 
 
 def _find_item(item, path_parts):
