@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from PyQt6.QtWidgets import QApplication, QTreeWidget
+from PyQt6.QtWidgets import QApplication, QTreeWidget, QWidget
 from PyQt6.QtCore import Qt
 
 from main_ui import FileScannerWorker, RAGStudioApp, ScanResult
@@ -111,6 +111,7 @@ def test_project_tree_supports_folder_selection_partial_state_and_exclusions():
 
 def test_kernel_observes_final_selected_context_not_full_scan():
     app = RAGStudioApp.__new__(RAGStudioApp)
+    QWidget.__init__(app)
     app.selected_files = {"a.py"}
     app.compiled_context = "a"
     app.context_files = {"a.py": "a", "b.py": "b"}
