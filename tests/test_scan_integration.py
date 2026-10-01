@@ -131,7 +131,6 @@ def test_kernel_observes_final_selected_context_not_full_scan():
     app.token_engine = type(
         "TokenEngine", (), {"calculate_tokens": staticmethod(lambda text: len(text))}
     )()
-    app.diagnostics = None
     app.evaluate_final_context()
 
     observation = app.kernel_result.observation
