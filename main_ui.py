@@ -397,7 +397,6 @@ class RAGStudioApp(QWidget):
         root.setFlags(
             root.flags()
             | Qt.ItemFlag.ItemIsUserCheckable
-            | Qt.ItemFlag.ItemIsAutoTristate
         )
         root.setCheckState(0, Qt.CheckState.Checked)
         root.setToolTip(0, "Select or clear all available project material.")
@@ -434,7 +433,6 @@ class RAGStudioApp(QWidget):
                         item.setFlags(
                             item.flags()
                             | Qt.ItemFlag.ItemIsUserCheckable
-                            | Qt.ItemFlag.ItemIsAutoTristate
                         )
                         item.setCheckState(0, Qt.CheckState.Checked)
                         item.setToolTip(
@@ -470,6 +468,30 @@ class RAGStudioApp(QWidget):
         for index in range(item.childCount()):
             self._collect_selected_files(item.child(index))
 
+    def _update_parent_states(self, item):
+        if item.childCount() == 0 or item.isDisabled():
+            return item.checkState(0)
+
+        child_states = []
+        for index in range(item.childCount()):
+            child = item.child(index)
+            if child.isDisabled():
+                continue
+            child_states.append(self._update_parent_states(child))
+
+        if not child_states:
+            return item.checkState(0)
+
+        if all(state == Qt.CheckState.Checked for state in child_states):
+            state = Qt.CheckState.Checked
+        elif all(state == Qt.CheckState.Unchecked for state in child_states):
+            state = Qt.CheckState.Unchecked
+        else:
+            state = Qt.CheckState.PartiallyChecked
+
+        item.setCheckState(0, state)
+        return state
+
     def handle_tree_change(self, item, column):
         if column != 0 or item.isDisabled():
             return
@@ -484,7 +506,9 @@ class RAGStudioApp(QWidget):
 
         self.selected_files.clear()
         for index in range(self.tree.topLevelItemCount()):
-            self._collect_selected_files(self.tree.topLevelItem(index))
+            root = self.tree.topLevelItem(index)
+            self._update_parent_states(root)
+            self._collect_selected_files(root)
 
         self.tree.blockSignals(False)
         self.rebuild_context()
