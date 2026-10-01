@@ -8,21 +8,32 @@ The normal GitHub test suite runs without Ollama, LM Studio, llama.cpp, a model 
 
 The test suite includes a deterministic **Test Core** provider. It implements the same Core contract used by real providers and returns a reproducible response.
 
-Run locally with:
+Run locally from the repository root with:
 
-pytest -q
+python -m pytest -q
 
 This is the first validation stage for reviewers.
 
 It verifies the Core boundary, deterministic behaviour, request construction, response handling, and OpenAI-compatible protocol shape without depending on an external AI service.
 
+### Linux Qt runtime dependency
+
+The Python dependency list installs PyQt6 itself, but PyQt6 also relies on operating-system graphics libraries.
+
+For Debian/Ubuntu Linux, install the EGL runtime library before running the test suite:
+
+sudo apt-get update
+sudo apt-get install -y libegl1
+
+This dependency is deliberately installed by the GitHub Actions workflow as well. It is an operating-system package, not a Python package, so it does not belong in requirements.txt.
+
 ## Stage 2: real local Core
 
 After installing a supported local engine and model, reviewers can run the optional real-engine integration test.
 
-For Ollama, make sure the service is running and the selected model is already available. Then run:
+For Ollama, make sure the service is running and the selected model is already available. Then run from the repository root:
 
-RAG_RUN_LOCAL_CORE=1 pytest -q tests/test_local_core.py
+RAG_RUN_LOCAL_CORE=1 python -m pytest -q tests/test_local_core.py
 
 The default connection is:
 

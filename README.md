@@ -51,10 +51,10 @@ Given the same observation, the kernel produces the same decision.
 
 | State     | Meaning                                          | Result               |
 | --------- | ------------------------------------------------ | -------------------- |
-| `SAFE`    | Valid observation within limits                  | Allowed              |
-| `WARNING` | Valid observation approaching a configured limit | Allowed with warning |
-| `BLOCKED` | Unsafe operating condition detected              | Prevented            |
-| `INVALID` | Observation data is malformed or inconsistent    | Prevented            |
+| SAFE      | Valid observation within limits                  | Allowed              |
+| WARNING   | Valid observation approaching a configured limit | Allowed with warning |
+| BLOCKED   | Unsafe operating condition detected              | Prevented            |
+| INVALID   | Observation data is malformed or inconsistent    | Prevented            |
 
 The kernel evaluates operational facts including:
 
@@ -72,7 +72,7 @@ The kernel is deliberately small and independent of AI inference.
 
 ## Security Redaction
 
-RAG Trigger Studio includes a text-based `SecurityRedactor`. It detects and replaces common sensitive values including:
+RAG Trigger Studio includes a text-based SecurityRedactor. It detects and replaces common sensitive values including:
 
 * passwords
 * secrets
@@ -100,7 +100,7 @@ review their environment and project configuration before processing sensitive m
 
 ## Local AI Integration
 
-RAG Trigger Studio communicates with an execution **Core** through an engine-neutral provider boundary. The repository includes a deterministic Test Core for reviewer testing, an Ollama provider, and an OpenAI-compatible provider path. The deterministic Micro-Kernel remains separate from AI inference and evaluates operational conditions independently of the Core.
+RAG Trigger Studio communicates with an execution Core through an engine-neutral provider boundary. The repository includes a deterministic Test Core for reviewer testing, an Ollama provider, and an OpenAI-compatible provider path. The deterministic Micro-Kernel remains separate from AI inference and evaluates operational conditions independently of the Core.
 
 ---
 
@@ -126,9 +126,9 @@ supplied by the application.
 RAG Trigger Studio can scan a selected project directory and assemble context for the AI pipeline. The scanner supports different
 file-selection modes and excludes common development directories such as:
 
-* `.git`
-* `.venv`
-* `__pycache__`
+* .git
+* .venv
+* __pycache__
 * generated output directories
 
 Context size is measured before dispatch so token pressure can be identified.
@@ -145,34 +145,55 @@ Context size is measured before dispatch so token pressure can be identified.
 * Ollama
 * A compatible local AI model
 
-Python dependencies are listed in `requirements.txt`.
-
+Python dependencies are listed in requirements.txt.
 
 ### Create a virtual environment
 
-From the project directory:
+From the repository root:
 
-`python3 -m venv .venv`
+python3 -m venv .venv
 
 Activate it:
 
-`source .venv/bin/activate`
+source .venv/bin/activate
 
-Install dependencies:
+Install application dependencies:
 
-`pip install -r requirements.txt`
+python -m pip install -r requirements.txt
 
+Install test/development dependencies when you intend to run the test suite:
+
+python -m pip install -r requirements-dev.txt
+
+### Linux Qt runtime dependency
+
+PyQt6 is installed through requirements.txt, but Linux also needs the operating-system EGL runtime library used by Qt.
+
+On Debian/Ubuntu:
+
+sudo apt-get update
+sudo apt-get install -y libegl1
+
+This is an operating-system dependency, not a Python dependency, so it is intentionally not placed in requirements.txt.
+
+The GitHub Actions workflow installs the same dependency on its Ubuntu runner.
+
+For the complete installation and tester preparation procedure, see docs/INSTALLATION.md.
 
 ### Install Ollama
 
 Install Ollama for your operating system using its official documentation. Then install a compatible model, for example:
-`ollama pull qwen2.5-coder:3b`. Make sure Ollama is running before using AI dispatch functionality.
+ollama pull qwen2.5-coder:3b. Make sure Ollama is running before using AI dispatch functionality.
 
 ---
 
 ## Running RAG Trigger Studio
 
-From the repository directory: `python3 main_ui.py`. The application launches as a PyQt6 desktop application.
+From the repository directory:
+
+python3 main_ui.py
+
+The application launches as a PyQt6 desktop application.
 
 ---
 
@@ -182,9 +203,9 @@ RAG Trigger Studio uses a two-stage validation path.
 
 ### Stage 1 — deterministic repository test
 
-No AI engine is required:
+No AI engine is required. Run from the repository root:
 
-`pytest -q`
+python -m pytest -q
 
 The suite includes a deterministic Test Core and an OpenAI-compatible protocol test using a local synthetic HTTP server. GitHub reviewers can therefore validate the Core architecture without installing a model or connecting to an external service.
 
@@ -192,9 +213,11 @@ The suite includes a deterministic Test Core and an OpenAI-compatible protocol t
 
 After installing a supported local engine and model, run the optional real-engine test. For Ollama:
 
-`RAG_RUN_LOCAL_CORE=1 pytest -q tests/test_local_core.py`
+RAG_RUN_LOCAL_CORE=1 python -m pytest -q tests/test_local_core.py
 
-See [CORE_TESTING.md](CORE_TESTING.md) for the complete testing boundary and provider details.
+The Stage 2 test is intentionally opt-in and is not part of the default GitHub CI run.
+
+See CORE_TESTING.md for the complete testing boundary and provider details, and docs/INSTALLATION.md for the complete tester installation procedure.
 
 ---
 
@@ -214,7 +237,7 @@ private customer or project data.
 ### Important
 
 Local-first does not automatically mean that every deployment is private. Network configuration, Ollama configuration,
-model configuration, operating-system behaviour, and other installed software can affect where data travels.Users remain
+model configuration, operating-system behaviour, and other installed software can affect where data travels. Users remain
 responsible for verifying the environment in which they run RAG Trigger Studio.
 
 ---
@@ -233,11 +256,11 @@ test_redactor.py
 config/
 main_ui.py
 requirements.txt
+requirements-dev.txt
+CORE_TESTING.md
+docs/
+INSTALLATION.md
 LICENSE
 README.md
 
-```
 Local runtime directories and configuration files are excluded from version control.
-
----
-
