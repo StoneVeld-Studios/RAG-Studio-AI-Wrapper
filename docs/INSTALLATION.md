@@ -43,9 +43,14 @@ sudo apt-get install -y libegl1
 
 The GitHub Actions workflow performs the same installation before importing the PyQt6 application.
 
-This package is not placed in requirements.txt because pip requirements describe Python packages, while libegl1 is an Ubuntu/Debian operating-system package.
+On Arch Linux, install Python/pip and the Qt graphics runtime libraries:
 
-Other Linux distributions may provide the same EGL runtime through a differently named system package. Use the distribution's Qt/OpenGL runtime package mechanism when the package name differs.
+sudo pacman -Syu
+sudo pacman -S --needed python python-pip mesa libglvnd
+
+Then install the project's Python dependencies in the virtual environment using the commands in Section 2. The Arch package names and dependency details are distribution-specific; if Qt reports a missing shared library, resolve that system dependency with pacman rather than adding an operating-system library to requirements.txt.
+
+These are operating-system dependencies, not Python dependencies, so they are intentionally not placed in requirements.txt. Other Linux distributions may provide the relevant EGL/Qt runtime through differently named packages.
 
 ## 4. Running the application
 
