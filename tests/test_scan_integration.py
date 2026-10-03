@@ -273,3 +273,33 @@ def test_developer_diagnostics_show_kernel_state_and_operational_evidence():
     assert "Read failures: 0" in report
     assert "Redactions: 2" in report
     assert "Kernel reasons: " in report
+
+
+def test_controlled_qa_workspace_loads_jsonl_and_excludes_binary_fixture():
+    fixture = (
+        Path(__file__).resolve().parents[1]
+        / "qa"
+        / "issue-5-workspace"
+    )
+    worker = FileScannerWorker(
+        str(fixture),
+        filter_id=3,
+        redact_checked=False,
+        custom_key="",
+    )
+    worker.token_engine.calculate_tokens = lambda text: len(text.split())
+    results = []
+    worker.scan_complete.connect(results.append)
+
+    worker.run()
+
+    scan_result = results[0]
+    assert "data/events.jsonl" in scan_result.file_contents
+    assert "data/malformed.jsonl" in scan_result.file_contents
+    assert "data/incomplete.jsonl" in scan_result.file_contents
+    assert "sample.bin" in scan_result.excluded_paths
+    assert ".venv" in scan_result.excluded_paths
+    assert "__pycache__" in scan_result.excluded_paths
+    assert "Authorization: Bearer SYNTHETIC_QA_TOKEN_DO_NOT_USE" not in (
+        scan_result.assembled_text
+    )
