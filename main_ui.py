@@ -637,7 +637,7 @@ class RAGStudioApp(QWidget):
         self.feedback.clear()
         self.lbl_feedback_status.setText(
             "Feedback submitted for this session. It remains separate from AI context "
-            "and will be included in the audit when audit export is enabled."
+            "and will be written to the audit when a run starts with audit export enabled."
         )
 
     def generate_corporate_audit_log(self, prompt, tokens, execution_status="pending"):
@@ -662,8 +662,11 @@ class RAGStudioApp(QWidget):
             generated_at=datetime.now().astimezone().isoformat(timespec="seconds"),
             provider=self.core.provider_name,
             model=self.core.model,
+            files_discovered=observations.get("files_discovered", len(self.context_files)),
             files_selected=len(self.selected_files),
             files_available=len(self.context_files),
+            files_excluded=observations.get("files_excluded", 0),
+            read_failures=observations.get("read_failures", 0),
             context_tokens=context_tokens,
             instruction_tokens=instruction_tokens,
             total_tokens=tokens,
