@@ -45,7 +45,10 @@ The workspace intentionally contains:
 - short documentation text
 - source code
 - Unicode content
-- JSONL data
+- valid JSONL data
+- malformed JSONL data
+- incomplete JSONL data
+- deliberately long text
 - synthetic redaction material
 - a deliberately non-text/binary-like fixture
 - excluded-directory material
@@ -58,7 +61,7 @@ Some excluded directories contain small fixture files. Their purpose is to verif
 - **QA-01:** Full workspace baseline
 - **QA-02:** Partial selection and tri-state behaviour
 - **QA-03:** Automatic exclusions
-- **QA-04:** JSONL context loading, including malformed/incomplete cases as they are added
+- **QA-04:** JSONL context loading, including malformed and incomplete cases
 - **QA-05:** Synthetic redaction
 - **QA-06:** Large context and token-limit accounting
 - **QA-07:** User-instruction token accounting
