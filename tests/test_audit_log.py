@@ -10,8 +10,11 @@ def make_record(**overrides):
         "generated_at": "2026-10-03T10:00:00+02:00",
         "provider": "Test Core",
         "model": "deterministic-test",
+        "files_discovered": 7,
         "files_selected": 3,
         "files_available": 5,
+        "files_excluded": 2,
+        "read_failures": 0,
         "context_tokens": 120,
         "instruction_tokens": 15,
         "total_tokens": 135,
@@ -37,7 +40,10 @@ def test_audit_contains_operational_facts_and_submitted_feedback(tmp_path):
     report = target.read_text(encoding="utf-8")
     assert "Provider: Test Core" in report
     assert "Model: deterministic-test" in report
+    assert "Files discovered: 7" in report
     assert "Files selected: 3 / 5" in report
+    assert "Files excluded: 2" in report
+    assert "File read failures: 0" in report
     assert "Context tokens: 120" in report
     assert "Instruction tokens: 15" in report
     assert "Total tokens: 135 / 4096" in report
