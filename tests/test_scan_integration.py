@@ -228,3 +228,48 @@ def test_audit_integration_uses_kernel_observations_and_omits_prompt_and_context
     assert "PRIVATE_PROJECT_CONTEXT" not in report
     assert "PRIVATE_FILE_CONTENT" not in report
     assert "/private.py" not in report
+
+
+def test_developer_diagnostics_show_kernel_state_and_operational_evidence():
+    from types import SimpleNamespace
+    from PyQt6.QtWidgets import QPlainTextEdit
+
+    app = RAGStudioApp.__new__(RAGStudioApp)
+    QWidget.__init__(app)
+    app.core = SimpleNamespace(
+        provider_name="Test Core",
+        model="deterministic-test",
+    )
+    app.max_tokens = 100
+    app.selected_files = {"a.py", "b.py"}
+    app.context_files = {"a.py": "a", "b.py": "b"}
+    app.compiled_context = "a b"
+    app.txt_prompt = QPlainTextEdit()
+    app.txt_prompt.setPlainText("inspect")
+    app.token_engine = SimpleNamespace(
+        calculate_tokens=lambda value: len(value.split())
+    )
+    app.kernel_result = Kernel().evaluate(
+        Observation(
+            files_discovered=3,
+            files_included=2,
+            files_excluded=1,
+            read_failures=0,
+            redaction_count=2,
+            token_count=2,
+            token_limit=100,
+        )
+    )
+    app.diagnostics = QPlainTextEdit()
+    app.diagnostics.show()
+
+    app.update_diagnostics()
+
+    report = app.diagnostics.toPlainText()
+    assert "Kernel state: SAFE" in report
+    assert "Kernel allowed: True" in report
+    assert "Files discovered: 3" in report
+    assert "Files excluded: 1" in report
+    assert "Read failures: 0" in report
+    assert "Redactions: 2" in report
+    assert "Kernel reasons: " in report
