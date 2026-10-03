@@ -284,7 +284,7 @@ def test_controlled_qa_workspace_loads_jsonl_and_excludes_binary_fixture():
     worker = FileScannerWorker(
         str(fixture),
         filter_id=3,
-        redact_checked=False,
+        redact_checked=True,
         custom_key="",
     )
     worker.token_engine.calculate_tokens = lambda text: len(text.split())
