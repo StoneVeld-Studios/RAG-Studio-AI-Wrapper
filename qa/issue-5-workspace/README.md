@@ -34,7 +34,7 @@ Pay attention to:
 - byte-count summaries where available
 - token/context counts
 - redaction counts
-- JSONL handling
+- JSONL file inclusion as text (the scanner does not parse or validate JSONL syntax)
 - large-context behaviour
 - whether a problem is indexing, retrieval, or display truncation
 
