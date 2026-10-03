@@ -1,4 +1,4 @@
-from pathlib import Path
+from dataclasses import fields
 
 import pytest
 
@@ -58,18 +58,16 @@ def test_audit_is_deterministic_for_the_same_record(tmp_path):
     assert first.read_bytes() == second.read_bytes()
 
 
-def test_audit_does_not_record_prompt_or_project_file_contents(tmp_path):
-    target = tmp_path / "audit.md"
-    record = make_record(
-        session_feedback="The output was readable.",
-    )
+def test_audit_record_contract_has_no_prompt_context_or_path_fields():
+    field_names = {field.name for field in fields(AuditRecord)}
 
-    write_audit(target, record)
-    report = target.read_text(encoding="utf-8")
-
-    assert "Authorization: Bearer PRIVATE_TEST_VALUE" not in report
-    assert "/home/tester/private-project" not in report
-    assert "PRIVATE_PROMPT_TEXT" not in report
+    assert "session_feedback" in field_names
+    assert "provider" in field_names
+    assert "kernel_state" in field_names
+    assert "prompt" not in field_names
+    assert "context" not in field_names
+    assert "project_path" not in field_names
+    assert "file_contents" not in field_names
 
 
 def test_audit_write_failure_is_not_silently_swallowed(tmp_path):
@@ -84,11 +82,16 @@ def test_audit_write_failure_is_not_silently_swallowed(tmp_path):
 def test_audit_records_execution_status_without_claiming_success(tmp_path):
     target = tmp_path / "audit.md"
 
-    write_audit(
-        target,
-        make_record(execution_status="failed"),
-    )
+    write_audit(target, make_record(execution_status="failed"))
 
     report = target.read_text(encoding="utf-8")
     assert "Execution status: failed" in report
     assert "Execution status: successful" not in report
+
+
+def test_audit_rejects_unknown_execution_status(tmp_path):
+    with pytest.raises(ValueError, match="execution_status"):
+        write_audit(
+            tmp_path / "audit.md",
+            make_record(execution_status="complete-ish"),
+        )
