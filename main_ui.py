@@ -681,11 +681,16 @@ class RAGStudioApp(QWidget):
             self.lbl_feedback_status.setText(
                 f"Audit export failed: {error}. Submitted feedback remains in this session."
             )
+            lifecycle_message = (
+                "The AI request has not been started."
+                if execution_status == "pending"
+                else f"The recorded execution status is '{execution_status}', but the final audit update failed."
+            )
             QMessageBox.warning(
                 self,
                 "Audit Export Failed",
-                "The session audit could not be written. The AI request has not been started. "
-                "Your submitted feedback remains in this session.\n\n"
+                "The session audit could not be written. "
+                f"{lifecycle_message} Submitted feedback remains in this session.\n\n"
                 f"Details: {error}",
             )
             return False
