@@ -10,6 +10,21 @@ to a local AI model. It is designed around a simple principle:
 RAG Trigger Studio helps developers work with large project codebases by providing context collection, token accounting, security redaction,
 deterministic safety evaluation, and local model integration.
 
+## What it does
+
+- **Select project context:** scan a project and choose which supported files to include.
+- **Protect sensitive values:** detect and redact common secret-like values before context is assembled.
+- **Measure context:** track selected files, context tokens, instruction tokens, and the configured limit.
+- **Evaluate operational safety:** use a deterministic Micro-Kernel to report SAFE, WARNING, BLOCKED, or INVALID conditions.
+- **Connect to a local AI Core:** use Ollama, an OpenAI-compatible provider, or the deterministic Test Core.
+- **Inspect and report:** use Developer Diagnostics, submit tester feedback, and optionally export a session audit to `output/context_sync_audit.md`.
+
+The audit records operational facts and explicitly submitted feedback; it is designed not to include the raw prompt or assembled project context. Runtime output is local and excluded from version control.
+
+## Interface and screenshots
+
+Screenshots will be added after the updated feedback and audit workflow has been run and captured from the actual application. They will show the project tree/context selection, Feedback area, Developer Diagnostics, and a representative audit result. No mock interface images are used.
+
 ---
 
 ## Why RAG Trigger Studio?
