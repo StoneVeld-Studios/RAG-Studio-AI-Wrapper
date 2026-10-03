@@ -66,11 +66,11 @@ class FileScannerWorker(QThread):
             target_exts = ('.py', '.c', '.h', '.sh', '.cpp',
                            '.hpp', '.java', '.cs', '.js', '.ts', '.go', '.rs')
         elif self.filter_id == 3:  # Pure Documentation & Logs
-            target_exts = ('.md', '.txt', '.log', '.json', '.yaml',
+            target_exts = ('.md', '.txt', '.log', '.json', '.jsonl', '.yaml',
                            '.xml', '.csv', '.ini', '.conf', '.cfg', '')
         else:                      # Complete Repository Package
             target_exts = ('.py', '.c', '.h', '.sh', '.cpp', '.hpp', '.java', '.cs', '.js', '.ts', '.go', '.rs',
-                           '.md', '.txt', '.log', '.json', '.yaml', '.xml', '.csv', '.ini', '.conf', '.cfg', '')
+                           '.md', '.txt', '.log', '.json', '.jsonl', '.yaml', '.xml', '.csv', '.ini', '.conf', '.cfg', '')
 
         for root, dirs, files in os.walk(self.folder):
             kept_dirs = []
