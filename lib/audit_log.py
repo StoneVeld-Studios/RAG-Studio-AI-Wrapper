@@ -32,7 +32,7 @@ class AuditRecord:
 
 def render_audit(record: AuditRecord) -> str:
     """Render stable Markdown from explicitly supplied session evidence."""
-    allowed_statuses = {"pending", "successful", "failed"}
+    allowed_statuses = {"not_started", "pending", "successful", "failed"}
     if record.execution_status not in allowed_statuses:
         raise ValueError(
             f"execution_status must be one of: {', '.join(sorted(allowed_statuses))}"
