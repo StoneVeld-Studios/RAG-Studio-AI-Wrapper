@@ -180,3 +180,51 @@ def test_empty_feedback_is_not_recorded():
 
     assert app.submitted_feedback == []
     assert "No feedback submitted" in app.lbl_feedback_status.text()
+
+
+def test_audit_integration_uses_kernel_observations_and_omits_prompt_and_context(
+    tmp_path, monkeypatch
+):
+    from types import SimpleNamespace
+    from PyQt6.QtWidgets import QCheckBox, QLabel
+    import main_ui
+
+    app = RAGStudioApp.__new__(RAGStudioApp)
+    QWidget.__init__(app)
+    monkeypatch.setattr(main_ui, "__file__", str(tmp_path / "main_ui.py"))
+
+    app.chk_audit = QCheckBox()
+    app.chk_audit.setChecked(True)
+    app.lbl_feedback_status = QLabel()
+    app.core = SimpleNamespace(
+        provider_name="Test Core",
+        model="deterministic-test",
+    )
+    app.token_engine = SimpleNamespace(
+        calculate_tokens=lambda value: len(value.split())
+    )
+    app.compiled_context = "PRIVATE_PROJECT_CONTEXT"
+    app.selected_files = {"private.py"}
+    app.context_files = {"private.py": "PRIVATE_FILE_CONTENT"}
+    app.max_tokens = 4096
+    app.kernel_result = SimpleNamespace(
+        observations={"redaction_count": 2},
+        state=KernelState.SAFE,
+        reasons=("Token count is within context limit.",),
+    )
+    app.submitted_feedback = [("2026-10-03T10:00:00+02:00", "UI was readable.")]
+
+    assert app.generate_corporate_audit_log(
+        "PRIVATE_PROMPT_TEXT", 17, "pending"
+    ) is True
+
+    report = (tmp_path / "output" / "context_sync_audit.md").read_text(
+        encoding="utf-8"
+    )
+    assert "Redactions: 2" in report
+    assert "Kernel state: SAFE" in report
+    assert "UI was readable." in report
+    assert "PRIVATE_PROMPT_TEXT" not in report
+    assert "PRIVATE_PROJECT_CONTEXT" not in report
+    assert "PRIVATE_FILE_CONTENT" not in report
+    assert "/private.py" not in report
