@@ -1,1 +1,231 @@
-# Testing Workflow\n\n## Purpose\n\nRAG Trigger Studio uses a deterministic, evidence-first testing workflow so that architectural behaviour can be verified without requiring a real AI Core, while real local Core testing remains a separate integration layer.\n\nThis document defines the testing ground introduced from the lessons of Issue #5 and the limitations of the earlier JSONL-focused testing proposal in Issue #6.\n\nThe objective is not to collect customer content. The objective is to verify that the application handles controlled inputs correctly, records useful operational evidence, and gives reviewers a reproducible way to distinguish defects.\n\n## Testing Model\n\nTesting is divided into four layers:\n\n1. **Deterministic automated tests** verify application and architectural contracts without an external AI service.\n2. **Controlled QA fixtures** provide known, synthetic inputs that can be reused across machines and test runs.\n3. **Runtime audit evidence** records what operation occurred and what the tester observed without unnecessarily recording customer content.\n4. **Human review** uses GitHub issues and pull requests to discuss findings, changes, evidence, and remaining work.\n\nThe layers have different responsibilities and should not be mixed.\n\n## Repository Boundaries\n\n### `tests/`\n\nAutomated pytest tests belong here.\n\nTests should verify behaviour and contracts rather than depend on a particular developer machine or private project.\n\n### `qa/`\n\nThe `qa/` directory contains controlled, versioned test material.\n\nIt is the test ground supplied to reviewers. Files placed here should be synthetic and intentionally designed to exercise specific application behaviour.\n\nExamples include:\n\n- short text\n- source code\n- Unicode text\n- JSON and JSONL\n- deliberately large text\n- synthetic redaction material\n- unsupported or binary-like files\n- automatically excluded directories\n- generated-looking files used to verify exclusion behaviour\n\nThe QA fixture must not contain real customer, credential, account, or personal information.\n\n### `output/`\n\nThe application's runtime-generated evidence belongs here.\n\nFor example:\n\n- `output/context_sync_audit.md`\n\nRuntime output is evidence produced by an execution. It is not a fixture and should not be treated as controlled QA input.\n\nRuntime output containing local paths, private content, credentials, prompts, or other sensitive material must not be committed to the repository.\n\n### GitHub Issues and Pull Requests\n\nIssues describe requirements, observations, or unresolved work.\n\nPull requests provide the implementation and its review trail.\n\nA test result should remain traceable to the fixture, scenario, implementation change, and evidence used to establish the result.\n\n## Issue #5 Lessons\n\nIssue #5 requested cross-platform UI rendering and context-loading verification.\n\nReviewer feedback identified two distinct testing tracks:\n\n### UI / Rendering\n\nRecord:\n\n- operating system\n- Python version\n- Qt/PyQt version\n- Core/backend information where relevant\n- CPU/GPU information where useful\n- exact visible symptom\n- whether the symptom reproduces after a fresh process\n- whether the behaviour is reproducible on repeated runs\n\n### Context Loading\n\nRecord:\n\n- fixture/scenario used\n- file-count and byte-count summaries\n- indexing or loading timing where useful\n- expected chunk/context measurements\n- reported context measurements\n- observed token counts\n- whether the problem is an indexing failure, retrieval omission, or display truncation\n\nThe same controlled fixture should be usable for both tracks so that machine-specific setup can be distinguished from deterministic application behaviour.\n\n## Privacy and Evidence\n\nThe testing workflow is designed around the principle:\n\n> Audit the operation, not the customer's content.\n\nReviewers should prefer:\n\n- synthetic fixtures\n- counts\n- timings\n- states\n- error descriptions\n- redaction counts\n- reproducible steps\n- redacted diagnostic excerpts\n\nReviewers should avoid submitting:\n\n- real project directories\n- customer files\n- credentials\n- API keys\n- personal information\n- unnecessary absolute paths\n- raw context contents\n- raw JSONL or diagnostic output when it may contain private material\n\nA useful test result explains what happened without requiring disclosure of the material being processed.\n\n## QA Scenarios\n\nThe controlled testing ground will grow around explicit scenarios rather than an unstructured collection of files.\n\nInitial scenario families are:\n\n- **QA-01 — Full workspace:** load the complete synthetic workspace and establish baseline counts.\n- **QA-02 — Partial selection:** verify selected, excluded, and tri-state directory behaviour.\n- **QA-03 — Automatic exclusions:** verify that known excluded directories and generated material are not treated as normal context.\n- **QA-04 — JSONL context loading:** exercise valid and malformed structured-line data and verify deterministic handling.\n- **QA-05 — Synthetic redaction:** verify that known synthetic secret-like material is redacted and counted without exposing the original value in audit evidence.\n- **QA-06 — Large context:** exercise deliberate context growth and token-limit accounting.\n- **QA-07 — User instructions:** verify instruction-token accounting independently from loaded context.\n- **QA-08 — Final-context Kernel observation:** verify that the final context observation reaches the deterministic Kernel correctly and produces the expected state.\n\nThese scenarios are a testing plan, not claims that every scenario is already complete. Each scenario must be implemented and evidenced before being marked complete.\n\n## Feedback and Audit\n\nThe Session Feedback area and the session audit are part of the same evidence path.\n\nA reviewer should be able to:\n\n1. perform a controlled test;\n2. enter an observation in the Feedback area;\n3. explicitly submit that feedback;\n4. receive clear UI acknowledgement;\n5. generate or complete the session audit;\n6. find the submitted observation in `output/context_sync_audit.md`;\n7. verify that the audit contains operational evidence rather than customer content.\n\nFeedback is tester evidence. It must not silently become AI context merely because it was entered into the UI.\n\nThe audit writer must fail visibly when it cannot produce the requested evidence. Silent exception swallowing is not acceptable for an evidence-producing path.\n\n## Determinism and Repetition\n\nA useful QA result should distinguish:\n\n- a deterministic application defect;\n- a machine-specific environment problem;\n- an external Core/integration problem;\n- a rendering-only problem;\n- a data-selection or indexing problem;\n- a retrieval problem;\n- a display-only truncation problem.\n\nWhere practical, reviewers should run the same scenario twice from a clean process.\n\nDifferences between the runs are evidence in their own right and should be recorded.\n\n## Relationship to Issue #6\n\nIssue #6 was opened to expand pytest coverage around a proposed JSONL logging layer, especially corrupted, incomplete, and malformed JSONL structures.\n\nThe current architecture no longer treats a JSONL logging layer as the primary testing boundary.\n\nThe useful requirement from Issue #6 — deterministic handling and testing of malformed or incomplete structured data — remains relevant and is incorporated into the broader QA and automated-testing model.\n\nIssue #6 is therefore considered **superseded in scope, but not yet closed**.\n\nIt should remain open until the replacement testing ground and audit/feedback work have been implemented, reviewed, and verified. Once the replacement work is accepted, Issue #6 can be closed with a reference to the resulting PR and this document.\n\n## Workflow for New Testing Work\n\nThe project follows this sequence:\n\n1. Research the reported behaviour or requirement.\n2. Separate the testing concern into a precise scenario.\n3. Define the expected evidence.\n4. Update the controlled QA fixture or automated test where necessary.\n5. Implement the smallest appropriate application change.\n6. Test the changed behaviour directly.\n7. Run the complete deterministic suite.\n8. Perform relevant manual GUI/Core testing.\n9. Review the audit and feedback evidence.\n10. Document failures, corrections, and remaining limitations.\n11. Open or update the pull request with the complete evidence trail.\n12. Only then close or supersede the corresponding issue.\n\nThis keeps the test environment, implementation, and evidence aligned.\n\n## Completion Standard\n\nTesting work is not complete merely because the application launches or pytest passes.\n\nA testing-ground change is complete when:\n\n- the intended behaviour is implemented;\n- automated tests cover the important contract;\n- the controlled QA fixture can reproduce the relevant scenario;\n- the UI gives the tester a clear workflow;\n- runtime audit evidence is produced correctly;\n- privacy boundaries are respected;\n- manual evidence has been reviewed where applicable;\n- failures are either corrected or explicitly documented;\n- the resulting PR provides a clear change and evidence trail.\n\nThe purpose of this workflow is reproducibility, transparency, and useful evidence for both maintainers and external reviewers.
+# Testing Workflow
+
+## Purpose
+
+RAG Trigger Studio uses a deterministic, evidence-first testing workflow so that architectural behaviour can be verified without requiring a real AI Core, while real local Core testing remains a separate integration layer.
+
+This document defines the testing ground introduced from the lessons of Issue #5 and the limitations of the earlier JSONL-focused testing proposal in Issue #6.
+
+The objective is not to collect customer content. The objective is to verify that the application handles controlled inputs correctly, records useful operational evidence, and gives reviewers a reproducible way to distinguish defects.
+
+## Testing Model
+
+Testing is divided into four layers:
+
+1. **Deterministic automated tests** verify application and architectural contracts without an external AI service.
+2. **Controlled QA fixtures** provide known, synthetic inputs that can be reused across machines and test runs.
+3. **Runtime audit evidence** records what operation occurred and what the tester observed without unnecessarily recording customer content.
+4. **Human review** uses GitHub issues and pull requests to discuss findings, changes, evidence, and remaining work.
+
+The layers have different responsibilities and should not be mixed.
+
+## Repository Boundaries
+
+### `tests/`
+
+Automated pytest tests belong here.
+
+Tests should verify behaviour and contracts rather than depend on a particular developer machine or private project.
+
+### `qa/`
+
+The `qa/` directory contains controlled, versioned test material.
+
+It is the test ground supplied to reviewers. Files placed here should be synthetic and intentionally designed to exercise specific application behaviour.
+
+Examples include:
+
+- short text
+- source code
+- Unicode text
+- JSON and JSONL
+- deliberately large text
+- synthetic redaction material
+- unsupported or binary-like files
+- automatically excluded directories
+- generated-looking files used to verify exclusion behaviour
+
+The QA fixture must not contain real customer, credential, account, or personal information.
+
+### `output/`
+
+The application's runtime-generated evidence belongs here.
+
+For example:
+
+- `output/context_sync_audit.md`
+
+Runtime output is evidence produced by an execution. It is not a fixture and should not be treated as controlled QA input.
+
+Runtime output containing local paths, private content, credentials, prompts, or other sensitive material must not be committed to the repository.
+
+### GitHub Issues and Pull Requests
+
+Issues describe requirements, observations, or unresolved work.
+
+Pull requests provide the implementation and its review trail.
+
+A test result should remain traceable to the fixture, scenario, implementation change, and evidence used to establish the result.
+
+## Issue #5 Lessons
+
+Issue #5 requested cross-platform UI rendering and context-loading verification.
+
+Reviewer feedback identified two distinct testing tracks:
+
+### UI / Rendering
+
+Record:
+
+- operating system
+- Python version
+- Qt/PyQt version
+- Core/backend information where relevant
+- CPU/GPU information where useful
+- exact visible symptom
+- whether the symptom reproduces after a fresh process
+- whether the behaviour is reproducible on repeated runs
+
+### Context Loading
+
+Record:
+
+- fixture/scenario used
+- file-count and byte-count summaries
+- indexing or loading timing where useful
+- expected chunk/context measurements
+- reported context measurements
+- observed token counts
+- whether the problem is an indexing failure, retrieval omission, or display truncation
+
+The same controlled fixture should be usable for both tracks so that machine-specific setup can be distinguished from deterministic application behaviour.
+
+## Privacy and Evidence
+
+The testing workflow is designed around the principle:
+
+> Audit the operation, not the customer's content.
+
+Reviewers should prefer:
+
+- synthetic fixtures
+- counts
+- timings
+- states
+- error descriptions
+- redaction counts
+- reproducible steps
+- redacted diagnostic excerpts
+
+Reviewers should avoid submitting:
+
+- real project directories
+- customer files
+- credentials
+- API keys
+- personal information
+- unnecessary absolute paths
+- raw context contents
+- raw JSONL or diagnostic output when it may contain private material
+
+A useful test result explains what happened without requiring disclosure of the material being processed.
+
+## QA Scenarios
+
+The controlled testing ground will grow around explicit scenarios rather than an unstructured collection of files.
+
+Initial scenario families are:
+
+- **QA-01 — Full workspace:** load the complete synthetic workspace and establish baseline counts.
+- **QA-02 — Partial selection:** verify selected, excluded, and tri-state directory behaviour.
+- **QA-03 — Automatic exclusions:** verify that known excluded directories and generated material are not treated as normal context.
+- **QA-04 — JSONL context loading:** exercise valid and malformed structured-line data and verify deterministic handling.
+- **QA-05 — Synthetic redaction:** verify that known synthetic secret-like material is redacted and counted without exposing the original value in audit evidence.
+- **QA-06 — Large context:** exercise deliberate context growth and token-limit accounting.
+- **QA-07 — User instructions:** verify instruction-token accounting independently from loaded context.
+- **QA-08 — Final-context Kernel observation:** verify that the final context observation reaches the deterministic Kernel correctly and produces the expected state.
+
+These scenarios are a testing plan, not claims that every scenario is already complete. Each scenario must be implemented and evidenced before being marked complete.
+
+## Feedback and Audit
+
+The Session Feedback area and the session audit are part of the same evidence path.
+
+A reviewer should be able to:
+
+1. perform a controlled test;
+2. enter an observation in the Feedback area;
+3. explicitly submit that feedback;
+4. receive clear UI acknowledgement;
+5. generate or complete the session audit;
+6. find the submitted observation in `output/context_sync_audit.md`;
+7. verify that the audit contains operational evidence rather than customer content.
+
+Feedback is tester evidence. It must not silently become AI context merely because it was entered into the UI.
+
+The audit writer must fail visibly when it cannot produce the requested evidence. Silent exception swallowing is not acceptable for an evidence-producing path.
+
+## Determinism and Repetition
+
+A useful QA result should distinguish:
+
+- a deterministic application defect;
+- a machine-specific environment problem;
+- an external Core/integration problem;
+- a rendering-only problem;
+- a data-selection or indexing problem;
+- a retrieval problem;
+- a display-only truncation problem.
+
+Where practical, reviewers should run the same scenario twice from a clean process.
+
+Differences between the runs are evidence in their own right and should be recorded.
+
+## Relationship to Issue #6
+
+Issue #6 was opened to expand pytest coverage around a proposed JSONL logging layer, especially corrupted, incomplete, and malformed JSONL structures.
+
+The current architecture no longer treats a JSONL logging layer as the primary testing boundary.
+
+The useful requirement from Issue #6 — deterministic handling and testing of malformed or incomplete structured data — remains relevant and is incorporated into the broader QA and automated-testing model.
+
+Issue #6 is therefore considered **superseded in scope, but not yet closed**.
+
+It should remain open until the replacement testing ground and audit/feedback work have been implemented, reviewed, and verified. Once the replacement work is accepted, Issue #6 can be closed with a reference to the resulting PR and this document.
+
+## Workflow for New Testing Work
+
+The project follows this sequence:
+
+1. Research the reported behaviour or requirement.
+2. Separate the testing concern into a precise scenario.
+3. Define the expected evidence.
+4. Update the controlled QA fixture or automated test where necessary.
+5. Implement the smallest appropriate application change.
+6. Test the changed behaviour directly.
+7. Run the complete deterministic suite.
+8. Perform relevant manual GUI/Core testing.
+9. Review the audit and feedback evidence.
+10. Document failures, corrections, and remaining limitations.
+11. Open or update the pull request with the complete evidence trail.
+12. Only then close or supersede the corresponding issue.
+
+This keeps the test environment, implementation, and evidence aligned.
+
+## Completion Standard
+
+Testing work is not complete merely because the application launches or pytest passes.
+
+A testing-ground change is complete when:
+
+- the intended behaviour is implemented;
+- automated tests cover the important contract;
+- the controlled QA fixture can reproduce the relevant scenario;
+- the UI gives the tester a clear workflow;
+- runtime audit evidence is produced correctly;
+- privacy boundaries are respected;
+- manual evidence has been reviewed where applicable;
+- failures are either corrected or explicitly documented;
+- the resulting PR provides a clear change and evidence trail.
+
+The purpose of this workflow is reproducibility, transparency, and useful evidence for both maintainers and external reviewers.
