@@ -50,7 +50,7 @@ sudo pacman -S --needed python python-pip mesa libglvnd
 
 Then install the project's Python dependencies in the virtual environment using the commands in Section 2. The Arch package names and dependency details are distribution-specific; if Qt reports a missing shared library, resolve that system dependency with pacman rather than adding an operating-system library to requirements.txt.
 
-These are operating-system dependencies, not Python dependencies, so they are intentionally not placed in requirements.txt. Other Linux distributions may provide the relevant EGL/Qt runtime through differently named packages.
+These are operating-system dependencies, not Python dependencies, so they are intentionally not placed in requirements.txt. Other Linux distributions may provide the relevant EGL/Qt runtime through differently named packages. For current Arch package details, see the [official python-pyqt6 package](https://archlinux.org/packages/extra/x86_64/python-pyqt6/) and the [ArchWiki Qt guide](https://wiki.archlinux.org/title/Qt).
 
 ## 4. Running the application
 
