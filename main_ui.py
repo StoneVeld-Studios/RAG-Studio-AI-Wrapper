@@ -1,6 +1,7 @@
 import os
 import sys
 from dataclasses import dataclass
+from datetime import datetime
 from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
                              QPushButton, QTextEdit, QLabel, QFileDialog,
                              QProgressBar, QCheckBox, QMessageBox, QRadioButton,
@@ -15,6 +16,7 @@ from lib.core import CoreRequest, CoreResponse
 from lib.core_providers import OllamaCoreProvider
 from lib.redactor import SecurityRedactor
 from lib.kernel import Kernel, Observation
+from lib.audit_log import AuditRecord, write_audit
 
 
 @dataclass(frozen=True)
@@ -179,6 +181,7 @@ class RAGStudioApp(QWidget):
         self.max_tokens = self.core.context_limit()
         self.kernel = Kernel()
         self.kernel_result = None
+        self.submitted_feedback = []
 
         self.initUI()
         self.apply_dark_mode_theme()
@@ -293,6 +296,10 @@ class RAGStudioApp(QWidget):
         self.feedback = QPlainTextEdit()
         self.feedback.setPlaceholderText("What did you observe? What worked or failed?")
         self.feedback.setMaximumHeight(90)
+        self.btn_submit_feedback = QPushButton("Submit Feedback")
+        self.btn_submit_feedback.clicked.connect(self.submit_feedback)
+        self.lbl_feedback_status = QLabel("Feedback has not been submitted.")
+        self.lbl_feedback_status.setWordWrap(True)
         self.btn_diagnostics = QPushButton("Developer Diagnostics")
         self.btn_diagnostics.setCheckable(True)
         self.btn_diagnostics.toggled.connect(self.toggle_diagnostics)
@@ -310,6 +317,8 @@ class RAGStudioApp(QWidget):
         right_panel.addWidget(self.btn_save_response)
         right_panel.addWidget(self.feedback_label)
         right_panel.addWidget(self.feedback)
+        right_panel.addWidget(self.btn_submit_feedback)
+        right_panel.addWidget(self.lbl_feedback_status)
         right_panel.addWidget(self.btn_diagnostics)
         right_panel.addWidget(self.diagnostics)
 
@@ -599,7 +608,12 @@ class RAGStudioApp(QWidget):
         self.btn_save_response.setEnabled(False)
 
         if self.chk_audit.isChecked():
-            self.generate_corporate_audit_log(user_prompt, total_tokens)
+            if not self.generate_corporate_audit_log(user_prompt, total_tokens, "pending"):
+                self.txt_console.setText(
+                    "Execution not started: the requested session audit could not be written."
+                )
+                self.btn_dispatch.setEnabled(True)
+                return
 
         self.worker = CoreWorker(
             self.core,
@@ -609,41 +623,88 @@ class RAGStudioApp(QWidget):
         self.worker.error_occurred.connect(self.handle_pipeline_error)
         self.worker.start()
 
-    def generate_corporate_audit_log(self, prompt, tokens):
+    def submit_feedback(self):
+        """Retain an explicit tester observation without adding it to AI context."""
+        feedback_text = self.feedback.toPlainText().strip()
+        if not feedback_text:
+            self.lbl_feedback_status.setText(
+                "No feedback submitted. Enter an observation first."
+            )
+            return
+
+        submitted_at = datetime.now().astimezone().isoformat(timespec="seconds")
+        self.submitted_feedback.append((submitted_at, feedback_text))
+        self.feedback.clear()
+        self.lbl_feedback_status.setText(
+            "Feedback submitted for this session. It remains separate from AI context "
+            "and will be included in the audit when audit export is enabled."
+        )
+
+    def generate_corporate_audit_log(self, prompt, tokens, execution_status="pending"):
+        """Write the session's operational evidence without recording prompt/context text."""
+        if not self.chk_audit.isChecked():
+            return True
+
         output_dir = os.path.join(os.path.dirname(
             os.path.abspath(__file__)), "output")
-        os.makedirs(output_dir, exist_ok=True)
         log_path = os.path.join(output_dir, "context_sync_audit.md")
+        context_tokens = self.token_engine.calculate_tokens(self.compiled_context)
+        instruction_tokens = self.token_engine.calculate_tokens(prompt)
+        kernel_result = self.kernel_result
+        observations = kernel_result.observations if kernel_result else {}
+
+        feedback_text = "\n\n---\n\n".join(
+            f"**Submitted at:** {submitted_at}\n\n{content}"
+            for submitted_at, content in self.submitted_feedback
+        )
+
+        record = AuditRecord(
+            generated_at=datetime.now().astimezone().isoformat(timespec="seconds"),
+            provider=self.core.provider_name,
+            model=self.core.model,
+            files_selected=len(self.selected_files),
+            files_available=len(self.context_files),
+            context_tokens=context_tokens,
+            instruction_tokens=instruction_tokens,
+            total_tokens=tokens,
+            token_limit=self.max_tokens,
+            redaction_count=observations.get("redaction_count", 0),
+            kernel_state=kernel_result.state.value if kernel_result else "UNAVAILABLE",
+            kernel_reasons=kernel_result.reasons if kernel_result else (),
+            execution_status=execution_status,
+            session_feedback=feedback_text,
+        )
+
         try:
-            with open(log_path, 'w', encoding='utf-8') as f:
-                f.write("# RAG TRIGGER STUDIO: Automation Verification Audit Log\n")
-                f.write(
-                    f"**Data Pipeline Metrics:** {tokens} / {self.max_tokens} Context Tokens Allocated\n\n")
-                f.write("## Session Facts\n")
-                f.write(f"- Provider: {self.core.provider_name}\n")
-                f.write(f"- Model: {self.core.model}\n")
-                f.write(
-                    f"- Selected files: {len(self.selected_files)} / {len(self.context_files)}\n"
-                )
-                f.write(
-                    f"- Context tokens: {self.token_engine.calculate_tokens(self.compiled_context)}\n"
-                )
-                f.write(
-                    f"- Instruction tokens: {self.token_engine.calculate_tokens(prompt)}\n"
-                )
-                f.write(
-                    f"- Redactions: {self.kernel_result.observation.redaction_count if self.kernel_result else 0}\n"
-                )
-                f.write(
-                    "\n## Session Feedback\n"
-                    + self.feedback.toPlainText()
-                    + "\n"
-                )
-        except Exception:
-            pass
+            write_audit(log_path, record)
+        except OSError as error:
+            self.lbl_feedback_status.setText(
+                f"Audit export failed: {error}. Submitted feedback remains in this session."
+            )
+            QMessageBox.warning(
+                self,
+                "Audit Export Failed",
+                "The session audit could not be written. The AI request has not been started. "
+                "Your submitted feedback remains in this session.\n\n"
+                f"Details: {error}",
+            )
+            return False
+
+        self.lbl_feedback_status.setText(
+            f"Audit updated: {os.path.relpath(log_path, os.path.dirname(os.path.abspath(__file__)))} "
+            f"({execution_status})."
+        )
+        return True
 
     def handle_ai_response(self, response: CoreResponse):
         self.last_response = response
+        if self.chk_audit.isChecked():
+            self.generate_corporate_audit_log(
+                self.txt_prompt.toPlainText().strip(),
+                self.token_engine.calculate_tokens(self.compiled_context)
+                + self.token_engine.calculate_tokens(self.txt_prompt.toPlainText().strip()),
+                "successful",
+            )
         self.txt_console.setText(response.text)
         self.lbl_core.setText(f"Core: Connected — {response.provider} / {response.model}")
         self.update_diagnostics()
@@ -651,6 +712,14 @@ class RAGStudioApp(QWidget):
         self.btn_save_response.setEnabled(True)
 
     def handle_pipeline_error(self, error_msg):
+        if self.chk_audit.isChecked():
+            prompt = self.txt_prompt.toPlainText().strip()
+            self.generate_corporate_audit_log(
+                prompt,
+                self.token_engine.calculate_tokens(self.compiled_context)
+                + self.token_engine.calculate_tokens(prompt),
+                "failed",
+            )
         self.txt_console.setText(
             f"Pipeline Interface Error: Connection to local loopback host failed.\nDetails: {error_msg}")
         self.btn_dispatch.setEnabled(True)
