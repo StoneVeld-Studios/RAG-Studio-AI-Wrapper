@@ -142,3 +142,41 @@ def test_kernel_observes_final_selected_context_not_full_scan():
     assert observation["redaction_count"] == 1
     assert observation["token_count"] == 1
     assert app.kernel_result.state == KernelState.SAFE
+
+
+def test_feedback_submission_is_explicit_and_does_not_modify_ai_context():
+    app = RAGStudioApp.__new__(RAGStudioApp)
+    QWidget.__init__(app)
+    from PyQt6.QtWidgets import QLabel, QPlainTextEdit
+
+    app.feedback = QPlainTextEdit()
+    app.feedback.setPlainText("Unicode text renders correctly.")
+    app.lbl_feedback_status = QLabel()
+    app.submitted_feedback = []
+    app.compiled_context = "synthetic project context"
+    app.txt_prompt = QPlainTextEdit()
+    app.txt_prompt.setPlainText("inspect the project")
+
+    app.submit_feedback()
+
+    assert len(app.submitted_feedback) == 1
+    assert app.submitted_feedback[0][1] == "Unicode text renders correctly."
+    assert app.feedback.toPlainText() == ""
+    assert app.compiled_context == "synthetic project context"
+    assert app.txt_prompt.toPlainText() == "inspect the project"
+    assert "submitted for this session" in app.lbl_feedback_status.text()
+
+
+def test_empty_feedback_is_not_recorded():
+    app = RAGStudioApp.__new__(RAGStudioApp)
+    QWidget.__init__(app)
+    from PyQt6.QtWidgets import QLabel, QPlainTextEdit
+
+    app.feedback = QPlainTextEdit()
+    app.lbl_feedback_status = QLabel()
+    app.submitted_feedback = []
+
+    app.submit_feedback()
+
+    assert app.submitted_feedback == []
+    assert "No feedback submitted" in app.lbl_feedback_status.text()
