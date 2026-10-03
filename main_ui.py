@@ -578,14 +578,40 @@ class RAGStudioApp(QWidget):
             return
         context_tokens = self.token_engine.calculate_tokens(self.compiled_context)
         instruction_tokens = self.token_engine.calculate_tokens(self.txt_prompt.toPlainText().strip())
+        kernel_state = (
+            self.kernel_result.state.value
+            if self.kernel_result
+            else "waiting for scan"
+        )
+        kernel_allowed = (
+            str(self.kernel_result.allowed)
+            if self.kernel_result
+            else "not evaluated"
+        )
+        observations = (
+            self.kernel_result.observations
+            if self.kernel_result
+            else {}
+        )
+        kernel_reasons = (
+            "; ".join(self.kernel_result.reasons)
+            if self.kernel_result
+            else "No Kernel evaluation available."
+        )
         self.diagnostics.setPlainText(
             f"Provider: {self.core.provider_name}\n"
             f"Model: {self.core.model}\n"
             f"Context limit: {self.max_tokens}\n"
             f"Files selected: {len(self.selected_files)} / {len(self.context_files)}\n"
+            f"Files discovered: {observations.get('files_discovered', 'unknown')}\n"
+            f"Files excluded: {observations.get('files_excluded', 'unknown')}\n"
+            f"Read failures: {observations.get('read_failures', 'unknown')}\n"
+            f"Redactions: {observations.get('redaction_count', 'unknown')}\n"
             f"Context tokens: {context_tokens}\n"
             f"Instruction tokens: {instruction_tokens}\n"
-            f"Kernel state: {'available' if self.kernel_result else 'waiting for scan'}"
+            f"Kernel state: {kernel_state}\n"
+            f"Kernel allowed: {kernel_allowed}\n"
+            f"Kernel reasons: {kernel_reasons}"
         )
 
     def execute_pipeline(self):
