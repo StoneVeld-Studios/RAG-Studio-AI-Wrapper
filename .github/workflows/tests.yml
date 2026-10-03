@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - experiment/rag-trigger-2.1.1-core-architecture
+      - experiment/testing-ground-001
   pull_request:
     branches:
       - main
