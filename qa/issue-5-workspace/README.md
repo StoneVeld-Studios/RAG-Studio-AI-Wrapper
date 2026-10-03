@@ -50,7 +50,7 @@ The workspace intentionally contains:
 - incomplete JSONL data
 - deliberately long text
 - synthetic redaction material
-- a deliberately non-text/binary-like fixture
+- a genuine 16-byte binary fixture (`sample.bin`)
 - excluded-directory material
 - generated-looking output material
 
