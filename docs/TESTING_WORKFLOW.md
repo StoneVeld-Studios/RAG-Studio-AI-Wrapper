@@ -139,7 +139,7 @@ Initial scenario families are:
 - **QA-01 — Full workspace:** load the complete synthetic workspace and establish baseline counts.
 - **QA-02 — Partial selection:** verify selected, excluded, and tri-state directory behaviour.
 - **QA-03 — Automatic exclusions:** verify that known excluded directories and generated material are not treated as normal context.
-- **QA-04 — JSONL context loading:** exercise valid and malformed structured-line data and verify deterministic handling.
+- **QA-04 — JSONL context loading:** verify that valid, malformed, and incomplete `.jsonl` files are included as text. The scanner does not parse or validate JSONL syntax; this scenario tests context inclusion and redaction, not structured-data validation.
 - **QA-05 — Synthetic redaction:** verify that known synthetic secret-like material is redacted and counted without exposing the original value in audit evidence.
 - **QA-06 — Large context:** exercise deliberate context growth and token-limit accounting.
 - **QA-07 — User instructions:** verify instruction-token accounting independently from loaded context.
