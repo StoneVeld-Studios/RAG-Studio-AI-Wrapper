@@ -17,8 +17,11 @@ class AuditRecord:
     generated_at: str
     provider: str
     model: str
+    files_discovered: int
     files_selected: int
     files_available: int
+    files_excluded: int
+    read_failures: int
     context_tokens: int
     instruction_tokens: int
     total_tokens: int
@@ -44,7 +47,10 @@ def render_audit(record: AuditRecord) -> str:
         f"- Generated at: {record.generated_at}",
         f"- Provider: {record.provider}",
         f"- Model: {record.model}",
+        f"- Files discovered: {record.files_discovered}",
         f"- Files selected: {record.files_selected} / {record.files_available}",
+        f"- Files excluded: {record.files_excluded}",
+        f"- File read failures: {record.read_failures}",
         f"- Context tokens: {record.context_tokens}",
         f"- Instruction tokens: {record.instruction_tokens}",
         f"- Total tokens: {record.total_tokens} / {record.token_limit}",
