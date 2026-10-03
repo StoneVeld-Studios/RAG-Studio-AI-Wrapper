@@ -1,3 +1,3 @@
-{"event":"scan_started","source":"synthetic-fixture","user":"qa-tester"}
+{"event":"scan_started","source":"synthetic-fixture"}
 {"event":"context_selected","files":2,"source":"synthetic-fixture"}
 {"event":"scan_completed","redactions":1,"source":"synthetic-fixture"}
